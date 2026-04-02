@@ -1,0 +1,335 @@
+:root {
+  --teal: #0D9488;
+  --teal-dark: #0F766E;
+  --teal-light: #14B8A6;
+  --gold: #D4A017;
+  --gold-light: #F0C14B;
+  --cyan: #06B6D4;
+  --coral: #F43F5E;
+  --coral-light: #FB7185;
+  --light-blue-gray: #E0F2F1;
+  --white: #FFFFFF;
+  --dark-gray: #1E293B;
+  --light-gray: #F8FAFC;
+  --slate-soft: #64748B;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  direction: rtl;
+  text-align: right;
+  background-color: var(--light-gray);
+  color: var(--dark-gray);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.4);
+}
+
+/* Hide scrollbar for step navigation */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: var(--teal);
+}
+
+/* ─── Button Base ─── */
+.btn {
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.35);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--gold), #c49415);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(212, 160, 23, 0.25);
+}
+.btn-secondary:hover {
+  box-shadow: 0 4px 16px rgba(212, 160, 23, 0.35);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--coral), #e11d48);
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.25);
+}
+.btn-danger:hover {
+  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1.5px solid var(--teal);
+  color: var(--teal);
+}
+.btn-outline:hover {
+  background-color: var(--teal);
+  color: var(--white);
+}
+
+/* ─── Form Styles ─── */
+.form-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: var(--white);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--dark-gray);
+}
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+  background-color: #f8fafc;
+  color: var(--dark-gray);
+  transition: all 0.2s ease;
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+  background-color: var(--white);
+}
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+.form-error {
+  color: var(--coral);
+  font-size: 0.813rem;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* ─── Table Styles ─── */
+.table-container {
+  background-color: var(--white);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(13, 148, 136, 0.08);
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead {
+  background-color: transparent;
+}
+.table th {
+  padding: 0.875rem 1rem;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+  color: var(--white);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+}
+.table th:first-child {
+  border-radius: 0 0.75rem 0 0;
+}
+.table th:last-child {
+  border-radius: 0.75rem 0 0 0;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--dark-gray);
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  background-color: var(--white);
+  transition: all 0.2s ease;
+}
+.table tbody tr:hover {
+  background-color: #f0fdfa;
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ─── Step Navigation ─── */
+.step-navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ─── Card Styles ─── */
+.card {
+  background-color: var(--white);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Activity Card ─── */
+.activity-card {
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
+}
+.activity-card:hover {
+  box-shadow: 0 8px 30px -5px rgb(13 148 136 / 0.12);
+  transform: translateY(-2px);
+  border-color: rgba(13, 148, 136, 0.2);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .form-container {
+    padding: 1rem;
+    margin: 0.75rem;
+    border-radius: 1rem;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .table-wrapper {
+    margin-bottom: 0.75rem;
+  }
+  .table {
+    min-width: 600px;
+    font-size: 0.813rem;
+  }
+  .table th,
+  .table td {
+    padding: 0.5rem 0.625rem;
+  }
+}
+
+/* ─── Animations ─── */
+@keyframes slide-down {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.animate-slide-down {
+  animation: slide-down 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ─── Smooth Transitions (targeted, no global override) ─── */
+a, button, input, textarea, select {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* ─── Enhanced Focus ─── */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+
+/* ─── Button Hover ─── */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* ─── Selection Color ─── */
+::selection {
+  background: rgba(13, 148, 136, 0.15);
+  color: var(--dark-gray);
+}
