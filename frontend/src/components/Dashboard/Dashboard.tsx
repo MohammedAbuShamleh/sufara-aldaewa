@@ -15,6 +15,7 @@ interface FormSummary {
     preaching_lessons: number
     scientific_lessons: number
     sermons: number
+    project_musalla_sermons: number
     tours: number
     forums: number
     media: number
@@ -251,13 +252,14 @@ function Dashboard() {
 
               {(() => {
                 const totals = {
-                  preaching_lessons: 0, scientific_lessons: 0, sermons: 0,
+                  preaching_lessons: 0, scientific_lessons: 0, sermons: 0, project_musalla_sermons: 0,
                   tours: 0, forums: 0, media: 0, visits: 0, reform: 0, other: 0,
                 }
                 summaries.forEach(s => {
                   totals.preaching_lessons += s.summary.preaching_lessons
                   totals.scientific_lessons += s.summary.scientific_lessons
                   totals.sermons += s.summary.sermons
+                  totals.project_musalla_sermons += s.summary.project_musalla_sermons ?? 0
                   totals.tours += s.summary.tours
                   totals.forums += s.summary.forums
                   totals.media += s.summary.media
@@ -265,12 +267,15 @@ function Dashboard() {
                   totals.reform += s.summary.reform
                   totals.other += s.summary.other
                 })
-                const grandTotal = Object.values(totals).reduce((a, b) => a + b, 0)
+                const grandTotal =
+                  totals.preaching_lessons + totals.scientific_lessons + totals.sermons +
+                  totals.tours + totals.forums + totals.media + totals.visits + totals.reform + totals.other
 
                 const STATS = [
                   { label: 'الدروس الوعظية', value: totals.preaching_lessons, color: '#0d9488', bg: '#f0fdfa' },
                   { label: 'الدروس العلمية', value: totals.scientific_lessons, color: '#0891b2', bg: '#ecfeff' },
                   { label: 'الخطب', value: totals.sermons, color: '#7c3aed', bg: '#f5f3ff' },
+                  { label: 'خطب في مصليات المشروع', value: totals.project_musalla_sermons, color: '#9333ea', bg: '#faf5ff' },
                   { label: 'الجولات', value: totals.tours, color: '#2563eb', bg: '#eff6ff' },
                   { label: 'الملتقيات', value: totals.forums, color: '#c026d3', bg: '#fdf4ff' },
                   { label: 'الإعلامية', value: totals.media, color: '#ea580c', bg: '#fff7ed' },
@@ -295,7 +300,7 @@ function Dashboard() {
                     </div>
 
                     {/* بطاقات الأنواع */}
-                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3">
                       {STATS.map(stat => (
                         <div
                           key={stat.label}

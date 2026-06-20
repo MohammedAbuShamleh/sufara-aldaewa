@@ -19,11 +19,13 @@ class Activity extends Model
         'beneficiaries_count',
         'tour_responsible',
         'coordination_responsible',
+        'is_project_musalla',
     ];
 
     protected $casts = [
         'execution_date' => 'date',
         'beneficiaries_count' => 'integer',
+        'is_project_musalla' => 'boolean',
     ];
 
     public function form()

@@ -71,6 +71,7 @@ class UserController extends Controller
                     'preaching_lessons'  => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
                     'sermons'            => $activities->where('activity_type', 'sermon')->count(),
+                    'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                     'tours'              => $activities->where('activity_type', 'tour')->count(),
                     'forums'             => $activities->where('activity_type', 'forum')->count(),
                     'media'              => $activities->where('activity_type', 'media')->count(),

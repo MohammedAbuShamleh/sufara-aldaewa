@@ -13,6 +13,7 @@ interface FormMonth {
     preaching_lessons: number
     scientific_lessons: number
     sermons: number
+    project_musalla_sermons: number
     tours: number
     forums: number
     media: number
@@ -37,6 +38,7 @@ const ACTIVITY_LABELS: { key: keyof FormMonth['summary']; label: string; color: 
   { key: 'preaching_lessons',  label: 'الدروس الوعظية',   color: '#0d9488' },
   { key: 'scientific_lessons', label: 'الدروس العلمية',   color: '#0891b2' },
   { key: 'sermons',            label: 'الخطب',            color: '#7c3aed' },
+  { key: 'project_musalla_sermons', label: 'خطب مصليات المشروع', color: '#9333ea' },
   { key: 'tours',              label: 'الجولات',          color: '#d97706' },
   { key: 'forums',             label: 'الملتقيات',        color: '#dc2626' },
   { key: 'media',              label: 'الإعلامية',        color: '#059669' },
@@ -202,7 +204,9 @@ function PreacherProfile() {
           <div className="flex flex-col gap-4">
             {preacher.forms.map((form) => {
               const isOpen = expandedForm === form.form_id
-              const total = Object.values(form.summary).reduce((a, b) => a + b, 0)
+              const total = Object.entries(form.summary)
+                .filter(([k]) => k !== 'project_musalla_sermons')
+                .reduce((a, [, b]) => a + (b ?? 0), 0)
               return (
                 <div
                   key={form.form_id}

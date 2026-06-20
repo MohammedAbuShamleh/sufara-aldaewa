@@ -64,6 +64,7 @@ class ActivityController extends Controller
             'beneficiaries_count' => 'nullable|integer|min:0',
             'tour_responsible' => 'nullable|string|max:255',
             'coordination_responsible' => 'nullable|string|max:255',
+            'is_project_musalla' => 'nullable|boolean',
         ]);
 
         if (!$this->ensureFormOwnership($request, (int) $validated['form_id'])) {
@@ -96,6 +97,7 @@ class ActivityController extends Controller
             'beneficiaries_count' => 'nullable|integer|min:0',
             'tour_responsible' => 'nullable|string|max:255',
             'coordination_responsible' => 'nullable|string|max:255',
+            'is_project_musalla' => 'nullable|boolean',
         ]);
 
         $activity->update($validated);
@@ -129,6 +131,7 @@ class ActivityController extends Controller
             'activities.*.beneficiaries_count' => 'nullable|integer|min:0',
             'activities.*.tour_responsible' => 'nullable|string|max:255',
             'activities.*.coordination_responsible' => 'nullable|string|max:255',
+            'activities.*.is_project_musalla' => 'nullable|boolean',
         ]);
 
         $activities = [];

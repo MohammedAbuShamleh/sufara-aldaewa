@@ -9,6 +9,7 @@ interface FormSummary {
     preaching_lessons: number
     scientific_lessons: number
     sermons: number
+    project_musalla_sermons: number
     tours: number
     forums: number
     media: number
@@ -40,7 +41,7 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
   }
 
   const COLUMN_COLORS = [
-    '#0d9488', '#0891b2', '#7c3aed', '#2563eb',
+    '#0d9488', '#0891b2', '#7c3aed', '#9333ea', '#2563eb',
     '#c026d3', '#ea580c', '#16a34a', '#ca8a04', '#64748b',
   ]
 
@@ -51,10 +52,12 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
           <thead>
             <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">اسم الداعية</th>
-              <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">المنطقة الفرعية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الوعظية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">العلمية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الخطب</th>
+              <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap" title="خطب في مصليات سفراء الدعوة">
+                خطب مصليات المشروع
+              </th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الجولات</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الملتقيات</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الإعلامية</th>
@@ -70,6 +73,7 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
                 summary.summary.preaching_lessons,
                 summary.summary.scientific_lessons,
                 summary.summary.sermons,
+                summary.summary.project_musalla_sermons ?? 0,
                 summary.summary.tours,
                 summary.summary.forums,
                 summary.summary.media,
@@ -81,11 +85,6 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
                 <tr key={summary.form_id} className="hover:bg-teal-50/40 transition-colors">
                   <td className="py-3 px-4 font-semibold text-slate-700 whitespace-nowrap">
                     {summary.preacher_name}
-                  </td>
-                  <td className="py-3 px-4 text-slate-500">
-                    {summary.sub_region || (
-                      <span className="text-slate-300">—</span>
-                    )}
                   </td>
                   {counts.map((count, i) => (
                     <td key={i} className="py-3 px-4 text-center">

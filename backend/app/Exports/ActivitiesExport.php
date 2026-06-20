@@ -58,13 +58,14 @@ class ActivitiesDetailSheet implements FromCollection, WithHeadings, WithMapping
             'عدد المستفيدين',
             'مسؤول الجولة',
             'مسؤول التنسيق',
+            'خطبة في مصلى المشروع',
         ];
     }
 
     public function map($activity): array
     {
         $types = Activity::getActivityTypes();
-        
+
         return [
             $types[$activity->activity_type] ?? $activity->activity_type,
             $activity->execution_date->format('Y-m-d'),
@@ -74,6 +75,7 @@ class ActivitiesDetailSheet implements FromCollection, WithHeadings, WithMapping
             $activity->beneficiaries_count ?? 0,
             $activity->tour_responsible ?? '',
             $activity->coordination_responsible ?? '',
+            ($activity->activity_type === 'sermon' && $activity->is_project_musalla) ? 'نعم' : '',
         ];
     }
 
@@ -131,6 +133,10 @@ class ActivitiesSummarySheet implements FromCollection, WithHeadings, WithMappin
             [
                 'label' => 'عدد الخطب',
                 'value' => $activities->where('activity_type', 'sermon')->count(),
+            ],
+            [
+                'label' => 'منها خطب في مصليات المشروع',
+                'value' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
             ],
             [
                 'label' => 'عدد الجولات',

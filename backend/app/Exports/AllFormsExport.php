@@ -85,6 +85,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
             'عدد المستفيدين',
             'مسؤول الجولة',
             'مسؤول التنسيق',
+            'خطبة في مصلى المشروع',
         ];
     }
 
@@ -92,7 +93,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
     {
         $activity = $item['activity'];
         $types = Activity::getActivityTypes();
-        
+
         return [
             $item['preacher_name'],
             $item['sub_region'] ?? '',
@@ -104,6 +105,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
             $activity->beneficiaries_count ?? 0,
             $activity->tour_responsible ?? '',
             $activity->coordination_responsible ?? '',
+            ($activity->activity_type === 'sermon' && $activity->is_project_musalla) ? 'نعم' : '',
         ];
     }
 
@@ -150,6 +152,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
                 'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
                 'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
                 'sermons' => $activities->where('activity_type', 'sermon')->count(),
+                'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                 'tours' => $activities->where('activity_type', 'tour')->count(),
                 'forums' => $activities->where('activity_type', 'forum')->count(),
                 'media' => $activities->where('activity_type', 'media')->count(),
@@ -167,6 +170,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
             'preaching_lessons' => collect($summary)->sum('preaching_lessons'),
             'scientific_lessons' => collect($summary)->sum('scientific_lessons'),
             'sermons' => collect($summary)->sum('sermons'),
+            'project_musalla_sermons' => collect($summary)->sum('project_musalla_sermons'),
             'tours' => collect($summary)->sum('tours'),
             'forums' => collect($summary)->sum('forums'),
             'media' => collect($summary)->sum('media'),
@@ -188,6 +192,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
             'الدروس الوعظية',
             'الدروس العلمية',
             'الخطب',
+            'منها في مصليات المشروع',
             'الجولات',
             'الملتقيات',
             'الأنشطة الإعلامية',
@@ -206,6 +211,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
             $item['preaching_lessons'],
             $item['scientific_lessons'],
             $item['sermons'],
+            $item['project_musalla_sermons'],
             $item['tours'],
             $item['forums'],
             $item['media'],

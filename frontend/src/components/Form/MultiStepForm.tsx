@@ -16,6 +16,7 @@ interface Activity {
   beneficiaries_count?: number
   tour_responsible?: string
   coordination_responsible?: string
+  is_project_musalla?: boolean
 }
 
 interface FieldDef {
@@ -188,6 +189,7 @@ function MultiStepForm() {
           beneficiaries_count: activity.beneficiaries_count ?? null,
           tour_responsible: activity.tour_responsible ?? null,
           coordination_responsible: activity.coordination_responsible ?? null,
+          is_project_musalla: section.activityType === 'sermon' ? !!activity.is_project_musalla : false,
         }
         if (activity.execution_date?.trim()) {
           payload.execution_date = activity.execution_date.trim().slice(0, 10)
@@ -214,6 +216,7 @@ function MultiStepForm() {
           beneficiaries_count: activity.beneficiaries_count ?? null,
           tour_responsible: activity.tour_responsible ?? null,
           coordination_responsible: activity.coordination_responsible ?? null,
+          is_project_musalla: section.activityType === 'sermon' ? !!activity.is_project_musalla : false,
         }
         const res = await api.post('/activities', payload)
         setActivities((prev) => {
@@ -263,6 +266,7 @@ function MultiStepForm() {
     // Add special fields
     if (sectionKey === '4') newActivity.tour_responsible = ''
     if (sectionKey === '5') newActivity.coordination_responsible = ''
+    if (section.activityType === 'sermon') newActivity.is_project_musalla = false
 
     setActivities((prev) => {
       const existing = prev[sectionKey] || []
@@ -316,6 +320,7 @@ function MultiStepForm() {
               beneficiaries_count: activity.beneficiaries_count,
               tour_responsible: activity.tour_responsible,
               coordination_responsible: activity.coordination_responsible,
+              is_project_musalla: !!activity.is_project_musalla,
             })
           }
         })
@@ -473,6 +478,26 @@ function MultiStepForm() {
                                 )}
                               </div>
                             ))}
+                            {section.activityType === 'sermon' && (
+                              <label className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-purple-200 bg-purple-50/60 cursor-pointer hover:bg-purple-50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={!!activity.is_project_musalla}
+                                  onChange={(e) =>
+                                    updateActivityField(section.key, index, 'is_project_musalla', e.target.checked)
+                                  }
+                                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-2 focus:ring-purple-300 cursor-pointer"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <span className="block text-xs font-semibold text-purple-800">
+                                    خطبة في مصلى من مصليات المشروع
+                                  </span>
+                                  <span className="block text-[11px] text-purple-600/80 mt-0.5">
+                                    (مصليات سفراء الدعوة)
+                                  </span>
+                                </div>
+                              </label>
+                            )}
                             <div className="flex items-center gap-2 pt-1">
                               <button
                                 type="button"
@@ -517,6 +542,11 @@ function MultiStepForm() {
                                 )}
                                 {activity.coordination_responsible && (
                                   <span className="text-[11px] text-slate-400">👤 {activity.coordination_responsible}</span>
+                                )}
+                                {section.activityType === 'sermon' && activity.is_project_musalla && (
+                                  <span className="text-[11px] font-semibold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">
+                                    🕌 مصلى مشروع
+                                  </span>
                                 )}
                               </div>
                             </div>
