@@ -172,6 +172,12 @@ function MultiStepForm() {
     const activity = sectionActivities[index]
     if (!activity) return
 
+    // Frontend validation: must have details
+    if (!activity.details || !activity.details.trim()) {
+      setToast({ message: 'يرجى إدخال تفاصيل النشاط قبل الحفظ', type: 'warning' })
+      return
+    }
+
     if (activity.id) {
       // Update existing
       try {
