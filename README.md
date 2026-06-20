@@ -1,180 +1,141 @@
-# نظام متابعة الأنشطة الدعوية
+# Dawah Activities Tracking System
 
-نظام شامل لجمع ومتابعة البيانات الخاصة بالأنشطة الدعوية مع إمكانية تصدير البيانات إلى Excel.
+> A full-stack web application for collecting and tracking field dawah (outreach) activities, featuring a multi-step data-entry workflow, a role-based dashboard, and one-click Excel export.
 
-## المميزات
+<p>
+  <img alt="React" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white">
+  <img alt="Laravel" src="https://img.shields.io/badge/Laravel-11-FF2D20?logo=laravel&logoColor=white">
+  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white">
+  <img alt="MySQL" src="https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white">
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-green">
+</p>
 
-- ✅ نظام مصادقة آمن باستخدام Laravel Sanctum
-- ✅ نموذج متعدد الخطوات (9 خطوات) لجمع البيانات
-- ✅ لوحة تحكم لعرض جميع الاستبيانات
-- ✅ تصدير البيانات إلى Excel (تفصيلي + ملخص)
-- ✅ فلترة البيانات حسب اسم الداعية والمنطقة
-- ✅ تصميم إسلامي أنيق بالألوان المحددة
+📄 [النسخة العربية / Arabic version](./README.ar.md)
 
-## التقنيات المستخدمة
+---
 
-### Backend
-- Laravel 11
-- Laravel Sanctum (المصادقة)
-- Laravel Excel (Maatwebsite) (تصدير Excel)
-- MySQL/PostgreSQL
+## Overview
 
-### Frontend
-- React 18
-- TypeScript
+This system streamlines how field teams collect and report dawah activity data. Coordinators fill out a guided, multi-step form, and managers review every submission from a central dashboard with filtering and Excel export. Authentication is token-based via Laravel Sanctum, and the interface uses a clean Arabic (RTL) design.
+
+## Features
+
+- 🔐 **Secure authentication** with Laravel Sanctum (token-based)
+- 📝 **Multi-step form** (9 steps) with auto-save between steps
+- 📊 **Management dashboard** to view, filter, and manage all submissions
+- 📁 **Excel export** — both a detailed report and a summary sheet
+- 🔎 **Filtering** by preacher name and region
+- 🎨 **Polished Arabic (RTL) UI** with a custom Islamic color palette
+
+## Tech Stack
+
+**Frontend**
+- React 18 + TypeScript
 - Vite
 - React Router
-- Axios
 - React Hook Form
+- Axios
 
-## التثبيت والإعداد
+**Backend**
+- Laravel 11
+- Laravel Sanctum (authentication)
+- Laravel Excel / Maatwebsite (Excel export)
+- MySQL / PostgreSQL
 
-### متطلبات النظام
-- PHP >= 8.2
-- Composer
-- Node.js >= 18
-- MySQL/PostgreSQL
-- npm أو yarn
+## Getting Started
 
-### إعداد Backend (Laravel)
+### Prerequisites
 
-1. انتقل إلى مجلد backend:
+- PHP >= 8.2 and Composer
+- Node.js >= 18 and npm
+- MySQL or PostgreSQL
+
+### Backend (Laravel)
+
 ```bash
 cd backend
-```
-
-2. قم بتثبيت الحزم:
-```bash
 composer install
-```
-
-3. انسخ ملف `.env.example` إلى `.env`:
-```bash
 cp .env.example .env
-```
-
-4. قم بتوليد مفتاح التطبيق:
-```bash
 php artisan key:generate
 ```
 
-5. قم بتعديل ملف `.env` وإضافة بيانات قاعدة البيانات:
+Set your database credentials in `.env`:
+
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=linkibnbaz
+DB_DATABASE=your_database
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-6. قم بتشغيل Migrations:
+Run the migrations and start the server:
+
 ```bash
 php artisan migrate
-```
-
-7. قم بإنشاء مستخدم تجريبي (اختياري):
-```bash
-php artisan tinker
-```
-ثم في Tinker:
-```php
-$user = new App\Models\User();
-$user->name = 'Admin';
-$user->email = 'admin@example.com';
-$user->password = Hash::make('password');
-$user->save();
-```
-
-8. قم بتشغيل الخادم:
-```bash
 php artisan serve
 ```
 
-الخادم سيعمل على: `http://localhost:8000`
+The API will run at `http://localhost:8000`.
 
-### إعداد Frontend (React)
+> **Optional — create a test user** via `php artisan tinker`:
+> ```php
+> $user = new App\Models\User();
+> $user->name = 'Admin';
+> $user->email = 'admin@example.com';
+> $user->password = Hash::make('password');
+> $user->save();
+> ```
 
-1. انتقل إلى مجلد frontend:
+### Frontend (React)
+
 ```bash
 cd frontend
-```
-
-2. قم بتثبيت الحزم:
-```bash
 npm install
-```
-
-3. قم بتشغيل خادم التطوير:
-```bash
 npm run dev
 ```
 
-التطبيق سيعمل على: `http://localhost:5173`
-
-## استخدام النظام
-
-### تسجيل الدخول
-1. افتح المتصفح وانتقل إلى `http://localhost:5173`
-2. سجل الدخول باستخدام البريد الإلكتروني وكلمة المرور
-
-### إنشاء استبيان جديد
-1. من لوحة التحكم، اضغط على "نموذج جديد"
-2. املأ البيانات في كل خطوة:
-   - الخطوة 1: معلومات عامة (اسم الداعية، المنطقة)
-   - الخطوة 2-9: بيانات الأنشطة المختلفة
-3. اضغط "التالي" للانتقال للخطوة التالية
-4. البيانات تُحفظ تلقائياً عند الانتقال بين الخطوات
-
-### عرض البيانات
-- من لوحة التحكم يمكنك:
-  - عرض جميع الاستبيانات في جدول
-  - فلترة البيانات حسب اسم الداعية أو المنطقة
-  - تصدير البيانات إلى Excel
-  - حذف الاستبيانات
-
-### تصدير Excel
-1. من لوحة التحكم، اضغط على زر "تصدير" بجانب أي استبيان
-2. سيتم تحميل ملف Excel يحتوي على:
-   - جميع الأنشطة مع التفاصيل الكاملة
-   - ملخص إجمالي بالأرقام
-
-## الألوان المستخدمة
-
-- **البترولي** `#1E8E8E`: شريط العنوان، الأيقونات
-- **الذهبي** `#B18A2D`: العناوين العربية، التفاصيل
-- **السماوي** `#11B3C0`: الأرقام المهمة
-- **الأحمر المرجاني** `#E44D26`: التنبيهات، الأوسمة
-- **الرمادي المزرق** `#E1F1F1`: خلفيات النصوص
+The app will run at `http://localhost:5173`.
 
 ## API Endpoints
 
-### المصادقة
-- `POST /api/login` - تسجيل الدخول
-- `POST /api/logout` - تسجيل الخروج
-- `GET /api/user` - معلومات المستخدم الحالي
+### Authentication
+| Method | Endpoint        | Description              |
+| ------ | --------------- | ------------------------ |
+| POST   | `/api/login`    | Log in                   |
+| POST   | `/api/logout`   | Log out                  |
+| GET    | `/api/user`     | Get the current user     |
 
-### الاستبيانات
-- `GET /api/forms` - قائمة جميع الاستبيانات
-- `POST /api/forms` - إنشاء استبيان جديد
-- `GET /api/forms/{id}` - تفاصيل استبيان
-- `PUT /api/forms/{id}` - تحديث استبيان
-- `DELETE /api/forms/{id}` - حذف استبيان
+### Forms
+| Method | Endpoint           | Description            |
+| ------ | ------------------ | ---------------------- |
+| GET    | `/api/forms`       | List all forms         |
+| POST   | `/api/forms`       | Create a new form      |
+| GET    | `/api/forms/{id}`  | Get a single form      |
+| PUT    | `/api/forms/{id}`  | Update a form          |
+| DELETE | `/api/forms/{id}`  | Delete a form          |
 
-### الأنشطة
-- `GET /api/activities?form_id={id}` - قائمة الأنشطة
-- `POST /api/activities` - إنشاء نشاط جديد
-- `PUT /api/activities/{id}` - تحديث نشاط
-- `DELETE /api/activities/{id}` - حذف نشاط
+### Activities
+| Method | Endpoint                        | Description           |
+| ------ | ------------------------------- | --------------------- |
+| GET    | `/api/activities?form_id={id}`  | List activities       |
+| POST   | `/api/activities`               | Create an activity    |
+| PUT    | `/api/activities/{id}`          | Update an activity    |
+| DELETE | `/api/activities/{id}`          | Delete an activity    |
 
-### لوحة التحكم والتصدير
-- `GET /api/dashboard/summary` - ملخص جميع الاستبيانات
-- `GET /api/export/excel/{form_id}` - تصدير Excel
+### Dashboard & Export
+| Method | Endpoint                        | Description                  |
+| ------ | ------------------------------- | ---------------------------- |
+| GET    | `/api/dashboard/summary`        | Summary of all submissions   |
+| GET    | `/api/export/excel/{form_id}`   | Export a form to Excel       |
 
-## البنية
+## Project Structure
 
 ```
-linkibnbaz/
+.
 ├── backend/              # Laravel API
 │   ├── app/
 │   │   ├── Models/
@@ -182,55 +143,33 @@ linkibnbaz/
 │   │   └── Exports/
 │   ├── database/migrations/
 │   └── routes/
-├── frontend/            # React + TypeScript
+├── frontend/             # React + TypeScript
 │   ├── src/
 │   │   ├── components/
 │   │   ├── services/
 │   │   └── styles/
 │   └── package.json
-└── logo.jpg
+└── README.md
 ```
 
-## التطوير المستقبلي
+## Deployment
 
-- [ ] إمكانية إنشاء نماذج مخصصة
-- [ ] تقارير إحصائية متقدمة
-- [ ] إشعارات للمستخدمين
-- [ ] دعم متعدد اللغات
-- [ ] تطبيق موبايل
+Deployment guides are included in the repository:
 
-## النشر على السيرفر
+- `QUICK_DEPLOY.md` — quick deployment guide
+- `DEPLOY_CHECKLIST.md` — full step-by-step checklist
+- `deploy-production.sh` / `deploy-production.ps1` — deployment scripts
 
-### دليل النشر السريع
-راجع ملف `QUICK_DEPLOY.md` للحصول على دليل سريع للنشر.
+**Requirements:** PHP >= 8.2, Composer, Node.js >= 18, MySQL/MariaDB, Apache or Nginx, and an SSL certificate (recommended).
 
-### دليل النشر الكامل
-راجع ملف `DEPLOY_CHECKLIST.md` للحصول على دليل شامل خطوة بخطوة.
+## Roadmap
 
-### استخدام Script النشر
-```bash
-chmod +x deploy-production.sh
-./deploy-production.sh
-```
+- [ ] Custom form builder
+- [ ] Advanced statistical reports
+- [ ] User notifications
+- [ ] Multi-language support
+- [ ] Mobile app
 
-### المتطلبات الأساسية للنشر
-- PHP >= 8.2
-- Composer
-- Node.js >= 18
-- MySQL/MariaDB
-- Apache أو Nginx
-- SSL Certificate (موصى به)
+## License
 
-### الخطوات الأساسية
-1. رفع الملفات إلى السيرفر
-2. إعداد قاعدة البيانات
-3. إعداد Backend (Laravel)
-4. إعداد Frontend (React)
-5. إعداد خادم الويب (Apache/Nginx)
-6. الاختبار
-
-للمزيد من التفاصيل، راجع `DEPLOY_CHECKLIST.md`.
-
-## الترخيص
-
-MIT License
+Released under the [MIT License](./LICENSE).
