@@ -26,6 +26,10 @@ class DashboardController extends Controller
             $usersQuery->where('region', 'like', '%' . $request->sub_region . '%');
         }
 
+        if ($request->filled('program_type')) {
+            $usersQuery->where('program_type', $request->program_type);
+        }
+
         $users = $usersQuery->orderBy('name')->get();
 
         // نماذج الشهر المطلوب مع أنشطتها، مفهرسة بمعرّف الداعية
@@ -45,6 +49,7 @@ class DashboardController extends Controller
                 'preacher_name' => $form?->preacher_name ?: $user->name,
                 'sub_region' => $form?->sub_region ?: $user->region,
                 'governorate' => $user->governorate,
+                'program_type' => $user->program_type,
                 'has_form' => (bool) $form,
                 'created_at' => $form?->created_at,
                 'summary' => [

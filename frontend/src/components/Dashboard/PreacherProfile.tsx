@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Header from '../Layout/Header'
 import api from '../../services/api'
+import { PROGRAM_OPTIONS, programLabel } from '../../constants/programs'
 import '../../styles/theme.css'
 
 interface FormMonth {
@@ -30,6 +31,7 @@ interface Preacher {
   id_number: string | null
   region: string | null
   governorate: string | null
+  program_type: string | null
   role: string
   forms: FormMonth[]
 }
@@ -65,6 +67,7 @@ function PreacherProfile() {
     id_number: '',
     region: '',
     governorate: '',
+    program_type: '',
     password: '',
   })
   const [editError, setEditError] = useState('')
@@ -78,6 +81,7 @@ function PreacherProfile() {
       id_number: preacher.id_number ?? '',
       region: preacher.region ?? '',
       governorate: preacher.governorate ?? '',
+      program_type: preacher.program_type ?? '',
       password: '',
     })
     setEditError('')
@@ -100,6 +104,7 @@ function PreacherProfile() {
         id_number: editForm.id_number.trim() || null,
         region: editForm.region.trim() || null,
         governorate: editForm.governorate.trim() || null,
+        program_type: editForm.program_type || null,
         password: editForm.password.trim() || null,
       })
       setPreacher((prev) =>
@@ -111,6 +116,7 @@ function PreacherProfile() {
               id_number: res.data.id_number,
               region: res.data.region,
               governorate: res.data.governorate,
+              program_type: res.data.program_type,
             }
           : prev,
       )
@@ -256,6 +262,7 @@ function PreacherProfile() {
               { label: 'رقم الهوية', value: preacher.id_number },
               { label: 'المنطقة',    value: preacher.region },
               { label: 'المحافظة',   value: preacher.governorate },
+              { label: 'البرنامج',   value: programLabel(preacher.program_type) || null },
               { label: 'البريد',     value: preacher.email },
             ].map(({ label, value }) => (
               <div key={label}>
@@ -446,6 +453,19 @@ function PreacherProfile() {
                   onChange={(e) => setEditForm({ ...editForm, governorate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">البرنامج</label>
+                <select
+                  value={editForm.program_type}
+                  onChange={(e) => setEditForm({ ...editForm, program_type: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                >
+                  <option value="">بدون تحديد</option>
+                  {PROGRAM_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">كلمة مرور جديدة</label>

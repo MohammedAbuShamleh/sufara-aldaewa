@@ -36,6 +36,10 @@ class UserController extends Controller
             });
         }
 
+        if ($request->filled('program_type')) {
+            $query->where('program_type', $request->program_type);
+        }
+
         $users = $query->orderBy('name')->get()->map(function ($user) {
             return [
                 'id' => $user->id,
@@ -44,6 +48,7 @@ class UserController extends Controller
                 'id_number' => $user->id_number,
                 'region' => $user->region,
                 'governorate' => $user->governorate,
+                'program_type' => $user->program_type,
                 'role' => $user->role,
             ];
         });
@@ -89,6 +94,7 @@ class UserController extends Controller
             'id_number'   => $user->id_number,
             'region'      => $user->region,
             'governorate' => $user->governorate,
+            'program_type' => $user->program_type,
             'role'        => $user->role,
             'notes'       => $user->notes,
             'forms'       => $formSummaries,
@@ -105,6 +111,7 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255|unique:users,id_number,' . $user->id,
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah',
             'password' => 'nullable|string|min:6',
         ]);
 
@@ -118,6 +125,7 @@ class UserController extends Controller
             'id_number' => $validated['id_number'] ?? null,
             'region' => $validated['region'] ?? null,
             'governorate' => $validated['governorate'] ?? null,
+            'program_type' => $validated['program_type'] ?? null,
         ];
 
         if (! empty($validated['password'])) {
@@ -133,6 +141,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'program_type' => $user->program_type,
             'role' => $user->role,
             'message' => 'تم تحديث بيانات الداعية بنجاح',
         ]);
@@ -174,6 +183,7 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255',
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah',
         ]);
 
         if (empty($validated['email']) && empty($validated['id_number'])) {
@@ -187,6 +197,7 @@ class UserController extends Controller
             'id_number' => $validated['id_number'] ?? null,
             'region' => $validated['region'] ?? null,
             'governorate' => $validated['governorate'] ?? null,
+            'program_type' => $validated['program_type'] ?? null,
             'role' => 'preacher',
         ]);
 
@@ -197,6 +208,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'program_type' => $user->program_type,
             'role' => $user->role,
         ], 201);
     }
@@ -209,7 +221,7 @@ class UserController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('المستخدمون');
 
-        $headers = ['الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة', 'المحافظة'];
+        $headers = ['الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة', 'المحافظة', 'البرنامج'];
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
         }
@@ -255,6 +267,7 @@ class UserController extends Controller
         $idNumberCol = $this->findColumnIndex($header, ['رقم الهوية', 'id_number', 'id number']);
         $regionCol = $this->findColumnIndex($header, ['المنطقة', 'region']);
         $governorateCol = $this->findColumnIndex($header, ['المحافظة', 'governorate']);
+        $programCol = $this->findColumnIndex($header, ['البرنامج', 'نوع البرنامج', 'program', 'program_type']);
 
         if ($nameCol === null || $passwordCol === null) {
             return response()->json([
@@ -272,6 +285,7 @@ class UserController extends Controller
             $idNumber = $idNumberCol !== null ? trim((string) ($row[$idNumberCol] ?? '')) : null;
             $region = $regionCol !== null ? trim((string) ($row[$regionCol] ?? '')) : null;
             $governorate = $governorateCol !== null ? trim((string) ($row[$governorateCol] ?? '')) : null;
+            $programType = $programCol !== null ? $this->normalizeProgramType((string) ($row[$programCol] ?? '')) : null;
 
             if ($name === '' && $email === '' && empty($idNumber)) {
                 continue;
@@ -303,6 +317,7 @@ class UserController extends Controller
                     'id_number' => $idNumber ?: null,
                     'region' => $region ?: null,
                     'governorate' => $governorate ?: null,
+                    'program_type' => $programType,
                     'role' => 'preacher',
                 ]);
                 $created++;
@@ -315,6 +330,21 @@ class UserController extends Controller
             'created' => $created,
             'errors' => $errors,
         ]);
+    }
+
+    private function normalizeProgramType(string $value): ?string
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return null;
+        }
+        if (mb_strpos($v, 'علم') !== false || mb_strtolower($v) === 'scientific') {
+            return 'scientific';
+        }
+        if (mb_strpos($v, 'دعو') !== false || mb_strtolower($v) === 'dawah') {
+            return 'dawah';
+        }
+        return null;
     }
 
     private function findColumnIndex(array $header, array $names): ?int

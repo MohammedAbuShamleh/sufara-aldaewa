@@ -4,6 +4,7 @@ import Header from '../Layout/Header'
 import ActivitiesTable from './ActivitiesTable'
 import UsersSection from './UsersSection'
 import api from '../../services/api'
+import { PROGRAM_OPTIONS } from '../../constants/programs'
 import '../../styles/theme.css'
 
 interface FormSummary {
@@ -12,6 +13,7 @@ interface FormSummary {
   preacher_name: string
   sub_region: string
   governorate: string | null
+  program_type?: string | null
   has_form?: boolean
   created_at: string | null
   summary: {
@@ -34,6 +36,7 @@ function Dashboard() {
   const [filters, setFilters] = useState({
     preacher_name: '',
     sub_region: '',
+    program_type: '',
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   })
@@ -81,6 +84,7 @@ function Dashboard() {
       params.append('year', filters.year.toString())
       if (filters.preacher_name) params.append('preacher_name', filters.preacher_name)
       if (filters.sub_region) params.append('sub_region', filters.sub_region)
+      if (filters.program_type) params.append('program_type', filters.program_type)
 
       const response = await api.get(`/dashboard/summary?${params.toString()}`)
       setSummaries(response.data)
@@ -129,6 +133,7 @@ function Dashboard() {
       params.append('year', filters.year.toString())
       if (filters.preacher_name) params.append('preacher_name', filters.preacher_name)
       if (filters.sub_region) params.append('sub_region', filters.sub_region)
+      if (filters.program_type) params.append('program_type', filters.program_type)
 
       const response = await api.get(`/export/excel-all?${params.toString()}`, {
         responseType: 'blob',
@@ -311,6 +316,21 @@ function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+            <div className="form-group">
+              <label className="block text-sm font-semibold text-darkGray mb-2">
+                البرنامج
+              </label>
+              <select
+                value={filters.program_type}
+                onChange={(e) => setFilters({ ...filters, program_type: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray focus:ring-2 focus:ring-teal focus:border-teal transition-all"
+              >
+                <option value="">كل البرامج</option>
+                {PROGRAM_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

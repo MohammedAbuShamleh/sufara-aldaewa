@@ -21,6 +21,7 @@ class ExportController extends Controller
         $filters = [
             'preacher_name' => $request->get('preacher_name'),
             'sub_region' => $request->get('sub_region'),
+            'program_type' => $request->get('program_type'),
         ];
         
         $filename = 'all_activities_' . date('Y-m-d_His') . '.xlsx';

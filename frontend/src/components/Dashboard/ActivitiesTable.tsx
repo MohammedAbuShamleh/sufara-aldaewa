@@ -1,3 +1,4 @@
+import { programLabel } from '../../constants/programs'
 import '../../styles/theme.css'
 
 interface FormSummary {
@@ -6,6 +7,7 @@ interface FormSummary {
   preacher_name: string
   sub_region: string
   governorate: string | null
+  program_type?: string | null
   has_form?: boolean
   created_at: string | null
   summary: {
@@ -56,6 +58,7 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
             <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">اسم الداعية</th>
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">المحافظة</th>
+              <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">البرنامج</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الوعظية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">العلمية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الخطب</th>
@@ -112,6 +115,15 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
                   </td>
                   <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                     {summary.governorate || <span className="text-slate-300">—</span>}
+                  </td>
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    {summary.program_type ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal/10 text-teal border border-teal/20">
+                        {programLabel(summary.program_type)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">—</span>
+                    )}
                   </td>
                   {counts.map((count, i) => (
                     <td key={i} className="py-3 px-4 text-center">

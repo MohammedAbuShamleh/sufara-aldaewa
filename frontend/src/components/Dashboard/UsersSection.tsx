@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../services/auth'
+import { PROGRAM_OPTIONS, programLabel } from '../../constants/programs'
 import '../../styles/theme.css'
 
 interface UserRow {
@@ -11,6 +12,7 @@ interface UserRow {
   id_number: string | null
   region: string | null
   governorate: string | null
+  program_type: string | null
   role: string
 }
 
@@ -26,6 +28,9 @@ export default function UsersSection() {
   const [regionFilter, setRegionFilter] = useState('')
   const [regionDropdownOpen, setRegionDropdownOpen] = useState(false)
   const regionDropdownRef = useRef<HTMLDivElement>(null)
+  const [programFilter, setProgramFilter] = useState('')
+  const [programDropdownOpen, setProgramDropdownOpen] = useState(false)
+  const programDropdownRef = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
@@ -40,6 +45,7 @@ export default function UsersSection() {
     id_number: '',
     region: '',
     governorate: '',
+    program_type: '',
   })
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
@@ -51,6 +57,7 @@ export default function UsersSection() {
     id_number: '',
     region: '',
     governorate: '',
+    program_type: '',
     password: '',
   })
   const [editError, setEditError] = useState('')
@@ -97,6 +104,18 @@ export default function UsersSection() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [regionDropdownOpen])
 
+  // إغلاق قائمة البرنامج عند الضغط خارجها
+  useEffect(() => {
+    if (!programDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (programDropdownRef.current && !programDropdownRef.current.contains(e.target as Node)) {
+        setProgramDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [programDropdownOpen])
+
   // قائمة المحافظات الموجودة فعلياً (فريدة ومرتبة)
   const governorateOptions = Array.from(
     new Set(users.map((u) => u.governorate).filter((g): g is string => !!g && g.trim() !== '')),
@@ -112,11 +131,12 @@ export default function UsersSection() {
     ),
   ).sort((a, b) => a.localeCompare(b, 'ar'))
 
-  // تطبيق فلترَي المحافظة والمنطقة الفرعية على المستخدمين المعروضين
+  // تطبيق فلاتر المحافظة والمنطقة الفرعية والبرنامج على المستخدمين المعروضين
   const displayedUsers = users.filter(
     (u) =>
       (!governorateFilter || u.governorate === governorateFilter) &&
-      (!regionFilter || u.region === regionFilter),
+      (!regionFilter || u.region === regionFilter) &&
+      (!programFilter || u.program_type === programFilter),
   )
 
   const handleAddUser = async (e: React.FormEvent) => {
@@ -135,8 +155,9 @@ export default function UsersSection() {
         id_number: form.id_number.trim() || null,
         region: form.region.trim() || null,
         governorate: form.governorate.trim() || null,
+        program_type: form.program_type || null,
       })
-      setForm({ name: '', email: '', password: '', id_number: '', region: '', governorate: '' })
+      setForm({ name: '', email: '', password: '', id_number: '', region: '', governorate: '', program_type: '' })
       setModalOpen(false)
       loadUsers()
     } catch (err: any) {
@@ -155,6 +176,7 @@ export default function UsersSection() {
       id_number: u.id_number ?? '',
       region: u.region ?? '',
       governorate: u.governorate ?? '',
+      program_type: u.program_type ?? '',
       password: '',
     })
     setEditError('')
@@ -176,6 +198,7 @@ export default function UsersSection() {
         id_number: editForm.id_number.trim() || null,
         region: editForm.region.trim() || null,
         governorate: editForm.governorate.trim() || null,
+        program_type: editForm.program_type || null,
         password: editForm.password.trim() || null,
       })
       setEditingUser(null)
@@ -435,12 +458,64 @@ export default function UsersSection() {
               )}
             </div>
 
-            {(governorateFilter || regionFilter) && (
+            {/* فلتر البرنامج — أيقونة تفتح قائمة الأنواع للاختيار */}
+            <div className="relative" ref={programDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setProgramDropdownOpen((o) => !o)}
+                title="فلترة حسب البرنامج"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  programFilter
+                    ? 'border-teal bg-teal/10 text-teal'
+                    : 'border-gray-300 bg-lightBlueGray text-darkGray hover:bg-slate-100'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <span>{programLabel(programFilter) || 'البرنامج'}</span>
+              </button>
+
+              {programDropdownOpen && (
+                <div className="absolute z-30 mt-1 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-1 right-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProgramFilter('')
+                      setProgramDropdownOpen(false)
+                    }}
+                    className={`w-full text-right px-4 py-2 text-sm hover:bg-slate-50 ${
+                      programFilter === '' ? 'text-teal font-semibold' : 'text-darkGray'
+                    }`}
+                  >
+                    كل البرامج
+                  </button>
+                  {PROGRAM_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setProgramFilter(opt.value)
+                        setProgramDropdownOpen(false)
+                      }}
+                      className={`w-full text-right px-4 py-2 text-sm hover:bg-slate-50 ${
+                        programFilter === opt.value ? 'text-teal font-semibold' : 'text-darkGray'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {(governorateFilter || regionFilter || programFilter) && (
               <button
                 type="button"
                 onClick={() => {
                   setGovernorateFilter('')
                   setRegionFilter('')
+                  setProgramFilter('')
                 }}
                 className="text-sm text-coral hover:underline"
               >
@@ -461,6 +536,7 @@ export default function UsersSection() {
                     <th className="py-2 px-2 font-semibold text-darkGray">رقم الهوية</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">المنطقة</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">المحافظة</th>
+                    <th className="py-2 px-2 font-semibold text-darkGray">البرنامج</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">الدور</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">إجراءات</th>
                   </tr>
@@ -473,6 +549,15 @@ export default function UsersSection() {
                       <td className="py-2 px-2 text-darkGray">{u.id_number ?? '—'}</td>
                       <td className="py-2 px-2 text-darkGray">{u.region ?? '—'}</td>
                       <td className="py-2 px-2 text-darkGray">{u.governorate ?? '—'}</td>
+                      <td className="py-2 px-2 text-darkGray">
+                        {u.program_type ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal/10 text-teal border border-teal/20 whitespace-nowrap">
+                            {programLabel(u.program_type)}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className="py-2 px-2 text-darkGray">{u.role === 'admin' ? 'أدمن' : 'داعية'}</td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
@@ -589,6 +674,19 @@ export default function UsersSection() {
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">البرنامج</label>
+                <select
+                  value={form.program_type}
+                  onChange={(e) => setForm({ ...form, program_type: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                >
+                  <option value="">بدون تحديد</option>
+                  {PROGRAM_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
               {formError && <p className="text-sm text-coral">{formError}</p>}
               <div className="flex gap-2 pt-2">
                 <button
@@ -662,6 +760,19 @@ export default function UsersSection() {
                   onChange={(e) => setEditForm({ ...editForm, governorate: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">البرنامج</label>
+                <select
+                  value={editForm.program_type}
+                  onChange={(e) => setEditForm({ ...editForm, program_type: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                >
+                  <option value="">بدون تحديد</option>
+                  {PROGRAM_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-darkGray mb-1">كلمة مرور جديدة</label>

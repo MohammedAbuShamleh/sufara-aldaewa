@@ -21,17 +21,32 @@ class AllFormsExport implements WithMultipleSheets
 
     public function __construct($filters = [])
     {
-        $query = Form::with('activities');
-        
+        $query = Form::with('activities', 'user');
+
         if (isset($filters['preacher_name']) && $filters['preacher_name']) {
             $query->where('preacher_name', 'like', '%' . $filters['preacher_name'] . '%');
         }
-        
+
         if (isset($filters['sub_region']) && $filters['sub_region']) {
             $query->where('sub_region', 'like', '%' . $filters['sub_region'] . '%');
         }
-        
+
+        if (isset($filters['program_type']) && $filters['program_type']) {
+            $query->whereHas('user', function ($q) use ($filters) {
+                $q->where('program_type', $filters['program_type']);
+            });
+        }
+
         $this->forms = $query->orderBy('created_at', 'desc')->get();
+    }
+
+    public static function programLabel(?string $type): string
+    {
+        return match ($type) {
+            'scientific' => 'البرنامج العلمي',
+            'dawah' => 'البرنامج الدعوي',
+            default => '',
+        };
     }
 
     public function sheets(): array
@@ -64,6 +79,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
                     'form_id' => $form->id,
                     'preacher_name' => $form->preacher_name,
                     'sub_region' => $form->sub_region,
+                    'program_type' => $form->user?->program_type,
                     'activity' => $activity,
                 ]);
             }
@@ -77,6 +93,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
         return [
             'اسم الداعية',
             'المنطقة الفرعية',
+            'البرنامج',
             'نوع النشاط',
             'تاريخ التنفيذ',
             'تفاصيل النشاط',
@@ -97,6 +114,7 @@ class AllFormsDetailSheet implements FromCollection, WithHeadings, WithMapping, 
         return [
             $item['preacher_name'],
             $item['sub_region'] ?? '',
+            AllFormsExport::programLabel($item['program_type'] ?? null),
             $types[$activity->activity_type] ?? $activity->activity_type,
             $activity->execution_date->format('Y-m-d'),
             $activity->details,
@@ -149,6 +167,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
             $summary[] = [
                 'preacher_name' => $form->preacher_name,
                 'sub_region' => $form->sub_region ?? '',
+                'program_type' => AllFormsExport::programLabel($form->user?->program_type),
                 'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
                 'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
                 'sermons' => $activities->where('activity_type', 'sermon')->count(),
@@ -167,6 +186,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
         $totalRow = [
             'preacher_name' => 'الإجمالي',
             'sub_region' => '',
+            'program_type' => '',
             'preaching_lessons' => collect($summary)->sum('preaching_lessons'),
             'scientific_lessons' => collect($summary)->sum('scientific_lessons'),
             'sermons' => collect($summary)->sum('sermons'),
@@ -189,6 +209,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
         return [
             'اسم الداعية',
             'المنطقة الفرعية',
+            'البرنامج',
             'الدروس الوعظية',
             'الدروس العلمية',
             'الخطب',
@@ -208,6 +229,7 @@ class AllFormsSummarySheet implements FromCollection, WithHeadings, WithMapping,
         return [
             $item['preacher_name'],
             $item['sub_region'],
+            $item['program_type'],
             $item['preaching_lessons'],
             $item['scientific_lessons'],
             $item['sermons'],

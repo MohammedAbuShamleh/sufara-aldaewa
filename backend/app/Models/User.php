@@ -18,6 +18,7 @@ class User extends Authenticatable
         'id_number',
         'region',
         'governorate',
+        'program_type',
         'role',
         'notes',
     ];
