@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Form;
+use App\Models\User;
 use App\Models\Activity;
 use Illuminate\Http\Request;
 
@@ -10,31 +11,42 @@ class DashboardController extends Controller
 {
     public function summary(Request $request)
     {
-        $query = Form::with('activities');
-
         // فلترة حسب الشهر والسنة (افتراضياً: الشهر الحالي)
         $month = $request->input('month', (int) date('n'));
         $year = $request->input('year', (int) date('Y'));
-        $query->where('month', $month)->where('year', $year);
 
-        if ($request->has('preacher_name')) {
-            $query->where('preacher_name', 'like', '%' . $request->preacher_name . '%');
+        // نبدأ من كل الدعاة (وليس من النماذج) ليظهر الجميع حتى من لم يُدخل نموذجاً
+        $usersQuery = User::where('role', 'preacher');
+
+        if ($request->filled('preacher_name')) {
+            $usersQuery->where('name', 'like', '%' . $request->preacher_name . '%');
         }
 
-        if ($request->has('sub_region')) {
-            $query->where('sub_region', 'like', '%' . $request->sub_region . '%');
+        if ($request->filled('sub_region')) {
+            $usersQuery->where('region', 'like', '%' . $request->sub_region . '%');
         }
 
-        $forms = $query->get();
+        $users = $usersQuery->orderBy('name')->get();
 
-        $summary = $forms->map(function ($form) {
-            $activities = $form->activities;
-            
+        // نماذج الشهر المطلوب مع أنشطتها، مفهرسة بمعرّف الداعية
+        $forms = Form::with('activities')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->get()
+            ->keyBy('user_id');
+
+        $summary = $users->map(function ($user) use ($forms) {
+            $form = $forms->get($user->id);
+            $activities = $form ? $form->activities : collect();
+
             return [
-                'form_id' => $form->id,
-                'preacher_name' => $form->preacher_name,
-                'sub_region' => $form->sub_region,
-                'created_at' => $form->created_at,
+                'form_id' => $form?->id,
+                'user_id' => $user->id,
+                'preacher_name' => $form?->preacher_name ?: $user->name,
+                'sub_region' => $form?->sub_region ?: $user->region,
+                'governorate' => $user->governorate,
+                'has_form' => (bool) $form,
+                'created_at' => $form?->created_at,
                 'summary' => [
                     'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
@@ -50,6 +62,6 @@ class DashboardController extends Controller
             ];
         });
 
-        return response()->json($summary);
+        return response()->json($summary->values());
     }
 }

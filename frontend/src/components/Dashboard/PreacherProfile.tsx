@@ -58,6 +58,77 @@ function PreacherProfile() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [notesSaved, setNotesSaved] = useState(false)
 
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    id_number: '',
+    region: '',
+    governorate: '',
+    password: '',
+  })
+  const [editError, setEditError] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
+  const openEdit = () => {
+    if (!preacher) return
+    setEditForm({
+      name: preacher.name ?? '',
+      email: preacher.email ?? '',
+      id_number: preacher.id_number ?? '',
+      region: preacher.region ?? '',
+      governorate: preacher.governorate ?? '',
+      password: '',
+    })
+    setEditError('')
+    setEditOpen(true)
+  }
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!id) return
+    setEditError('')
+    if (!editForm.email.trim() && !editForm.id_number.trim()) {
+      setEditError('يجب إدخال البريد الإلكتروني أو رقم الهوية على الأقل')
+      return
+    }
+    setEditSaving(true)
+    try {
+      const res = await api.put(`/users/${id}`, {
+        name: editForm.name.trim(),
+        email: editForm.email.trim() || null,
+        id_number: editForm.id_number.trim() || null,
+        region: editForm.region.trim() || null,
+        governorate: editForm.governorate.trim() || null,
+        password: editForm.password.trim() || null,
+      })
+      setPreacher((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: res.data.name,
+              email: res.data.email,
+              id_number: res.data.id_number,
+              region: res.data.region,
+              governorate: res.data.governorate,
+            }
+          : prev,
+      )
+      setEditOpen(false)
+    } catch (err: any) {
+      const data = err.response?.data
+      const msg =
+        data?.message ||
+        data?.errors?.email?.[0] ||
+        data?.errors?.id_number?.[0] ||
+        data?.errors?.name?.[0] ||
+        'فشل تحديث البيانات'
+      setEditError(msg)
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -163,7 +234,16 @@ function PreacherProfile() {
               <h1 className="text-2xl md:text-3xl font-bold text-slate-800">{preacher.name}</h1>
               <p className="text-teal font-medium text-sm mt-1">داعية</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openEdit}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-teal text-white text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                تعديل البيانات
+              </button>
               <span className="px-3 py-1 rounded-full bg-teal/10 text-teal text-sm font-semibold border border-teal/20">
                 {preacher.forms.length} نموذج
               </span>
@@ -307,6 +387,98 @@ function PreacherProfile() {
         </div>
 
       </div>
+
+      {/* نافذة تعديل بيانات الداعية */}
+      {editOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setEditOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-teal/10 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-lg font-bold text-teal mb-4">تعديل بيانات الداعية</h4>
+            <form onSubmit={handleEditSave} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">الاسم *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">البريد الإلكتروني</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  placeholder="اختياري"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">رقم الهوية</label>
+                <input
+                  type="text"
+                  value={editForm.id_number}
+                  onChange={(e) => setEditForm({ ...editForm, id_number: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">المنطقة</label>
+                <input
+                  type="text"
+                  value={editForm.region}
+                  onChange={(e) => setEditForm({ ...editForm, region: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">المحافظة</label>
+                <input
+                  type="text"
+                  value={editForm.governorate}
+                  onChange={(e) => setEditForm({ ...editForm, governorate: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">كلمة مرور جديدة</label>
+                <input
+                  type="password"
+                  value={editForm.password}
+                  onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                  placeholder="اتركها فارغة لعدم التغيير"
+                  minLength={6}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              {editError && <p className="text-sm text-red-500">{editError}</p>}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="px-4 py-2 rounded-xl bg-teal text-white font-medium disabled:opacity-70"
+                >
+                  {editSaving ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-gray-300 text-slate-700"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

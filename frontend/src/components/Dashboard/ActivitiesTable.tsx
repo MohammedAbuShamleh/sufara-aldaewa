@@ -1,10 +1,13 @@
 import '../../styles/theme.css'
 
 interface FormSummary {
-  form_id: number
+  form_id: number | null
+  user_id?: number
   preacher_name: string
   sub_region: string
-  created_at: string
+  governorate: string | null
+  has_form?: boolean
+  created_at: string | null
   summary: {
     preaching_lessons: number
     scientific_lessons: number
@@ -52,6 +55,7 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
           <thead>
             <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">اسم الداعية</th>
+              <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">المحافظة</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الوعظية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">العلمية</th>
               <th className="py-3.5 px-4 text-center text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">الخطب</th>
@@ -81,10 +85,33 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
                 summary.summary.reform,
                 summary.summary.other,
               ]
+              const totalActivities = counts.reduce((a, b) => a + (b ?? 0), 0)
+              const noForm = summary.has_form === false || summary.form_id == null
+              const isEmpty = totalActivities === 0
+              const needsAttention = noForm || isEmpty
               return (
-                <tr key={summary.form_id} className="hover:bg-teal-50/40 transition-colors">
+                <tr
+                  key={summary.user_id ?? summary.form_id ?? summary.preacher_name}
+                  className={`transition-colors ${
+                    needsAttention ? 'bg-amber-50/70 hover:bg-amber-100/70' : 'hover:bg-teal-50/40'
+                  }`}
+                >
                   <td className="py-3 px-4 font-semibold text-slate-700 whitespace-nowrap">
-                    {summary.preacher_name}
+                    <div className="flex items-center gap-2">
+                      <span>{summary.preacher_name}</span>
+                      {noForm ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 whitespace-nowrap">
+                          لم يُدخل النموذج
+                        </span>
+                      ) : isEmpty ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-300 whitespace-nowrap">
+                          نموذج فارغ
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
+                    {summary.governorate || <span className="text-slate-300">—</span>}
                   </td>
                   {counts.map((count, i) => (
                     <td key={i} className="py-3 px-4 text-center">
@@ -101,26 +128,30 @@ function ActivitiesTable({ summaries, onExport, onDelete }: Props) {
                     </td>
                   ))}
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <button
-                        className="p-1.5 rounded-lg bg-teal/10 text-teal hover:bg-teal hover:text-white transition-all"
-                        onClick={() => onExport(summary.form_id)}
-                        title="تصدير"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </button>
-                      <button
-                        className="p-1.5 rounded-lg bg-coral/10 text-coral hover:bg-coral hover:text-white transition-all"
-                        onClick={() => onDelete(summary.form_id)}
-                        title="حذف"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
+                    {summary.form_id != null ? (
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <button
+                          className="p-1.5 rounded-lg bg-teal/10 text-teal hover:bg-teal hover:text-white transition-all"
+                          onClick={() => onExport(summary.form_id as number)}
+                          title="تصدير"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-1.5 rounded-lg bg-coral/10 text-coral hover:bg-coral hover:text-white transition-all"
+                          onClick={() => onDelete(summary.form_id as number)}
+                          title="حذف"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center text-slate-300 text-xs">—</div>
+                    )}
                   </td>
                 </tr>
               )

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Layout/Header'
 import ActivitiesTable from './ActivitiesTable'
@@ -7,10 +7,13 @@ import api from '../../services/api'
 import '../../styles/theme.css'
 
 interface FormSummary {
-  form_id: number
+  form_id: number | null
+  user_id?: number
   preacher_name: string
   sub_region: string
-  created_at: string
+  governorate: string | null
+  has_form?: boolean
+  created_at: string | null
   summary: {
     preaching_lessons: number
     scientific_lessons: number
@@ -34,6 +37,9 @@ function Dashboard() {
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
   })
+  const [governorateFilter, setGovernorateFilter] = useState('')
+  const [govDropdownOpen, setGovDropdownOpen] = useState(false)
+  const govDropdownRef = useRef<HTMLDivElement>(null)
 
   const MONTH_NAMES = [
     'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -44,6 +50,28 @@ function Dashboard() {
   useEffect(() => {
     loadSummaries()
   }, [filters])
+
+  // إغلاق قائمة المحافظات عند الضغط خارجها
+  useEffect(() => {
+    if (!govDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (govDropdownRef.current && !govDropdownRef.current.contains(e.target as Node)) {
+        setGovDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [govDropdownOpen])
+
+  // قائمة المحافظات الموجودة فعلياً في بيانات الشهر (فريدة ومرتبة)
+  const governorateOptions = Array.from(
+    new Set(summaries.map((s) => s.governorate).filter((g): g is string => !!g && g.trim() !== '')),
+  ).sort((a, b) => a.localeCompare(b, 'ar'))
+
+  // تطبيق فلتر المحافظة على البيانات المعروضة
+  const displayedSummaries = governorateFilter
+    ? summaries.filter((s) => s.governorate === governorateFilter)
+    : summaries
 
   const loadSummaries = async () => {
     setLoading(true)
@@ -163,7 +191,7 @@ function Dashboard() {
             </svg>
             <h3 className="text-xl font-bold text-teal">فلترة البيانات</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="form-group">
               <label className="block text-sm font-semibold text-darkGray mb-2">
                 الشهر
@@ -222,6 +250,68 @@ function Dashboard() {
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray focus:ring-2 focus:ring-teal focus:border-teal transition-all"
               />
             </div>
+            <div className="form-group">
+              <label className="block text-sm font-semibold text-darkGray mb-2">
+                المحافظة
+              </label>
+              <div className="relative" ref={govDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setGovDropdownOpen((o) => !o)}
+                  className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-lg border text-right transition-all ${
+                    governorateFilter
+                      ? 'border-teal bg-teal/10 text-teal font-semibold'
+                      : 'border-gray-300 bg-lightBlueGray text-darkGray hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 018 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                    </svg>
+                    {governorateFilter || 'كل المحافظات'}
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${govDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {govDropdownOpen && (
+                  <div className="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGovernorateFilter('')
+                        setGovDropdownOpen(false)
+                      }}
+                      className={`w-full text-right px-4 py-2 text-sm hover:bg-slate-50 ${
+                        governorateFilter === '' ? 'text-teal font-semibold' : 'text-darkGray'
+                      }`}
+                    >
+                      كل المحافظات
+                    </button>
+                    {governorateOptions.length === 0 ? (
+                      <p className="px-4 py-2 text-sm text-darkGray/60">لا توجد محافظات</p>
+                    ) : (
+                      governorateOptions.map((gov) => (
+                        <button
+                          key={gov}
+                          type="button"
+                          onClick={() => {
+                            setGovernorateFilter(gov)
+                            setGovDropdownOpen(false)
+                          }}
+                          className={`w-full text-right px-4 py-2 text-sm hover:bg-slate-50 ${
+                            governorateFilter === gov ? 'text-teal font-semibold' : 'text-darkGray'
+                          }`}
+                        >
+                          {gov}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -246,7 +336,7 @@ function Dashboard() {
                   </h3>
                 </div>
                 <span className="px-3 py-1 rounded-full bg-teal/10 text-teal text-sm font-semibold">
-                  {summaries.length} داعية
+                  {displayedSummaries.length} داعية
                 </span>
               </div>
 
@@ -255,7 +345,7 @@ function Dashboard() {
                   preaching_lessons: 0, scientific_lessons: 0, sermons: 0, project_musalla_sermons: 0,
                   tours: 0, forums: 0, media: 0, visits: 0, reform: 0, other: 0,
                 }
-                summaries.forEach(s => {
+                displayedSummaries.forEach(s => {
                   totals.preaching_lessons += s.summary.preaching_lessons
                   totals.scientific_lessons += s.summary.scientific_lessons
                   totals.sermons += s.summary.sermons
@@ -327,8 +417,19 @@ function Dashboard() {
               })()}
             </div>
 
+            <div className="flex flex-wrap items-center gap-4 mb-3 text-xs text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded bg-amber-200 border border-amber-300" />
+                لم يُدخل النموذج هذا الشهر
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded bg-orange-200 border border-orange-300" />
+                نموذج فارغ (بدون أنشطة)
+              </span>
+            </div>
+
             <ActivitiesTable
-              summaries={summaries}
+              summaries={displayedSummaries}
               onExport={handleExport}
               onDelete={handleDelete}
             />

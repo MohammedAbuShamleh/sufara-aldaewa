@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // مسارات إدارة المستخدمين (أدمن فقط)
     Route::get('/users', [UserController::class, 'index']);
     Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
     Route::patch('/users/{user}/notes', [UserController::class, 'updateNotes']);
     Route::post('/users', [UserController::class, 'store']);
     Route::delete('/users/{user}', [UserController::class, 'destroy']);

@@ -95,6 +95,49 @@ class UserController extends Controller
         ]);
     }
 
+    public function update(Request $request, User $user)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'id_number' => 'nullable|string|max:255|unique:users,id_number,' . $user->id,
+            'region' => 'nullable|string|max:255',
+            'governorate' => 'nullable|string|max:255',
+            'password' => 'nullable|string|min:6',
+        ]);
+
+        if (empty($validated['email']) && empty($validated['id_number'])) {
+            return response()->json(['message' => 'يجب إدخال البريد الإلكتروني أو رقم الهوية على الأقل'], 422);
+        }
+
+        $data = [
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'id_number' => $validated['id_number'] ?? null,
+            'region' => $validated['region'] ?? null,
+            'governorate' => $validated['governorate'] ?? null,
+        ];
+
+        if (! empty($validated['password'])) {
+            $data['password'] = Hash::make($validated['password']);
+        }
+
+        $user->update($data);
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'id_number' => $user->id_number,
+            'region' => $user->region,
+            'governorate' => $user->governorate,
+            'role' => $user->role,
+            'message' => 'تم تحديث بيانات الداعية بنجاح',
+        ]);
+    }
+
     public function updateNotes(Request $request, User $user)
     {
         $this->ensureAdmin($request);
