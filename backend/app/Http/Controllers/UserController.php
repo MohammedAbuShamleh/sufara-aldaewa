@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -19,11 +20,33 @@ class UserController extends Controller
         }
     }
 
+    /** يجمع معرّفات الصفات من ?tag_id= أو ?tag_ids[]= إلى مصفوفة أعداد صحيحة. */
+    private function requestedTagIds(Request $request): array
+    {
+        $ids = array_merge(
+            (array) $request->input('tag_ids', []),
+            $request->filled('tag_id') ? [$request->input('tag_id')] : [],
+        );
+
+        return collect($ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function index(Request $request)
     {
         $this->ensureAdmin($request);
 
-        $query = User::query();
+        $query = User::query()->with('tags');
+
+        // فلترة حسب الصفة (tag) — أي مستخدم يحمل أياً من الصفات المطلوبة (ANY)
+        $tagIds = $this->requestedTagIds($request);
+        if (! empty($tagIds)) {
+            $query->whereHas('tags', fn ($q) => $q->whereIn('tags.id', $tagIds));
+        }
 
         if ($request->filled('search')) {
             $s = $request->search;
@@ -49,7 +72,9 @@ class UserController extends Controller
                 'region' => $user->region,
                 'governorate' => $user->governorate,
                 'program_type' => $user->program_type,
+                'administrative_title' => $user->administrative_title,
                 'role' => $user->role,
+                'tags' => $user->tagsArray(),
             ];
         });
 
@@ -59,6 +84,8 @@ class UserController extends Controller
     public function show(Request $request, User $user)
     {
         $this->ensureAdmin($request);
+
+        $user->load('tags');
 
         $forms = $user->forms()->with('activities')->orderByDesc('year')->orderByDesc('month')->get();
 
@@ -95,8 +122,10 @@ class UserController extends Controller
             'region'      => $user->region,
             'governorate' => $user->governorate,
             'program_type' => $user->program_type,
+            'administrative_title' => $user->administrative_title,
             'role'        => $user->role,
             'notes'       => $user->notes,
+            'tags'        => $user->tagsArray(),
             'forms'       => $formSummaries,
         ]);
     }
@@ -112,7 +141,11 @@ class UserController extends Controller
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
             'program_type' => 'nullable|in:scientific,dawah',
+            'administrative_title' => 'nullable|string|max:255',
+            'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
             'password' => 'nullable|string|min:6',
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'integer|exists:tags,id',
         ]);
 
         if (empty($validated['email']) && empty($validated['id_number'])) {
@@ -128,11 +161,28 @@ class UserController extends Controller
             'program_type' => $validated['program_type'] ?? null,
         ];
 
+        // نحدّث المسمى الإداري فقط إذا أُرسل الحقل (حتى لا تمحوه الشاشات التي لا ترسله)
+        if ($request->has('administrative_title')) {
+            $data['administrative_title'] = $validated['administrative_title'] ?? null;
+        }
+
+        // الدور اختياري؛ لا نغيّره إذا لم يُرسل
+        if (! empty($validated['role'])) {
+            $data['role'] = $validated['role'];
+        }
+
         if (! empty($validated['password'])) {
             $data['password'] = Hash::make($validated['password']);
         }
 
         $user->update($data);
+
+        // مزامنة الصفات فقط إذا أُرسل الحقل (حتى لا تمحوها الشاشات التي لا ترسله)
+        if ($request->has('tag_ids')) {
+            $user->tags()->sync($validated['tag_ids'] ?? []);
+        }
+
+        $user->load('tags');
 
         return response()->json([
             'id' => $user->id,
@@ -142,7 +192,9 @@ class UserController extends Controller
             'region' => $user->region,
             'governorate' => $user->governorate,
             'program_type' => $user->program_type,
+            'administrative_title' => $user->administrative_title,
             'role' => $user->role,
+            'tags' => $user->tagsArray(),
             'message' => 'تم تحديث بيانات الداعية بنجاح',
         ]);
     }
@@ -184,6 +236,10 @@ class UserController extends Controller
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
             'program_type' => 'nullable|in:scientific,dawah',
+            'administrative_title' => 'nullable|string|max:255',
+            'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'integer|exists:tags,id',
         ]);
 
         if (empty($validated['email']) && empty($validated['id_number'])) {
@@ -198,8 +254,15 @@ class UserController extends Controller
             'region' => $validated['region'] ?? null,
             'governorate' => $validated['governorate'] ?? null,
             'program_type' => $validated['program_type'] ?? null,
-            'role' => 'preacher',
+            'administrative_title' => $validated['administrative_title'] ?? null,
+            'role' => $validated['role'] ?? User::ROLE_PREACHER,
         ]);
+
+        if (! empty($validated['tag_ids'])) {
+            $user->tags()->sync($validated['tag_ids']);
+        }
+
+        $user->load('tags');
 
         return response()->json([
             'id' => $user->id,
@@ -209,7 +272,9 @@ class UserController extends Controller
             'region' => $user->region,
             'governorate' => $user->governorate,
             'program_type' => $user->program_type,
+            'administrative_title' => $user->administrative_title,
             'role' => $user->role,
+            'tags' => $user->tagsArray(),
         ], 201);
     }
 
@@ -221,7 +286,7 @@ class UserController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('المستخدمون');
 
-        $headers = ['الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة', 'المحافظة', 'البرنامج'];
+        $headers = ['الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة', 'المحافظة', 'البرنامج', 'المسمى الإداري'];
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
         }
@@ -268,6 +333,7 @@ class UserController extends Controller
         $regionCol = $this->findColumnIndex($header, ['المنطقة', 'region']);
         $governorateCol = $this->findColumnIndex($header, ['المحافظة', 'governorate']);
         $programCol = $this->findColumnIndex($header, ['البرنامج', 'نوع البرنامج', 'program', 'program_type']);
+        $adminTitleCol = $this->findColumnIndex($header, ['المسمى الإداري', 'المسمى', 'administrative_title', 'title']);
 
         if ($nameCol === null || $passwordCol === null) {
             return response()->json([
@@ -286,6 +352,7 @@ class UserController extends Controller
             $region = $regionCol !== null ? trim((string) ($row[$regionCol] ?? '')) : null;
             $governorate = $governorateCol !== null ? trim((string) ($row[$governorateCol] ?? '')) : null;
             $programType = $programCol !== null ? $this->normalizeProgramType((string) ($row[$programCol] ?? '')) : null;
+            $adminTitle = $adminTitleCol !== null ? trim((string) ($row[$adminTitleCol] ?? '')) : null;
 
             if ($name === '' && $email === '' && empty($idNumber)) {
                 continue;
@@ -318,6 +385,7 @@ class UserController extends Controller
                     'region' => $region ?: null,
                     'governorate' => $governorate ?: null,
                     'program_type' => $programType,
+                    'administrative_title' => $adminTitle ?: null,
                     'role' => 'preacher',
                 ]);
                 $created++;

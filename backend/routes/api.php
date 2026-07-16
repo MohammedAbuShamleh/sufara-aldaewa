@@ -7,6 +7,7 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TagController;
 use Illuminate\Support\Facades\Route;
 
 // للتحقق من أن الـ API يعمل (يظهر عند فتح /api في المتصفح)
@@ -31,6 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/download-template', [UserController::class, 'downloadTemplate']);
     Route::post('/users/import-excel', [UserController::class, 'importExcel']);
 
+    // قائمة الصفات (Tags) — لملء قوائم الاختيار والفلترة
+    Route::get('/tags', [TagController::class, 'index']);
+
     // نموذج الشهر الحالي للمستخدم (إن لم يوجد يُنشأ فارغاً)
     Route::get('/forms/my-form', [FormController::class, 'myForm']);
 
@@ -50,6 +54,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/forms/{form}', [FormController::class, 'destroy']);
 
     Route::get('/dashboard/summary', [DashboardController::class, 'summary']);
+    // قوائم الفلترة المقيّدة بنطاق صلاحيات العارض
+    Route::get('/dashboard/governorates', [DashboardController::class, 'governorates']);
+    Route::get('/dashboard/sub-regions', [DashboardController::class, 'subRegions']);
     Route::get('/export/excel/{form}', [ExportController::class, 'export']);
     Route::get('/export/excel-all', [ExportController::class, 'exportAll']);
 });

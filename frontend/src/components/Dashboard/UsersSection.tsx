@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import { useAuth } from '../../services/auth'
 import { PROGRAM_OPTIONS, programLabel } from '../../constants/programs'
+import { ROLE_OPTIONS, roleLabel } from '../../constants/roles'
+import { type Tag } from '../../constants/tags'
+import { TagsSelect, TagChips } from './TagsSelect'
 import '../../styles/theme.css'
 
 interface UserRow {
@@ -13,7 +16,9 @@ interface UserRow {
   region: string | null
   governorate: string | null
   program_type: string | null
+  administrative_title: string | null
   role: string
+  tags?: Tag[]
 }
 
 export default function UsersSection() {
@@ -46,7 +51,10 @@ export default function UsersSection() {
     region: '',
     governorate: '',
     program_type: '',
+    administrative_title: '',
+    role: 'preacher',
   })
+  const [formTagIds, setFormTagIds] = useState<number[]>([])
   const [formError, setFormError] = useState('')
   const [formLoading, setFormLoading] = useState(false)
 
@@ -58,8 +66,11 @@ export default function UsersSection() {
     region: '',
     governorate: '',
     program_type: '',
+    administrative_title: '',
+    role: 'preacher',
     password: '',
   })
+  const [editTagIds, setEditTagIds] = useState<number[]>([])
   const [editError, setEditError] = useState('')
   const [editLoading, setEditLoading] = useState(false)
 
@@ -156,8 +167,12 @@ export default function UsersSection() {
         region: form.region.trim() || null,
         governorate: form.governorate.trim() || null,
         program_type: form.program_type || null,
+        administrative_title: form.administrative_title.trim() || null,
+        role: form.role || 'preacher',
+        tag_ids: formTagIds,
       })
-      setForm({ name: '', email: '', password: '', id_number: '', region: '', governorate: '', program_type: '' })
+      setForm({ name: '', email: '', password: '', id_number: '', region: '', governorate: '', program_type: '', administrative_title: '', role: 'preacher' })
+      setFormTagIds([])
       setModalOpen(false)
       loadUsers()
     } catch (err: any) {
@@ -177,8 +192,11 @@ export default function UsersSection() {
       region: u.region ?? '',
       governorate: u.governorate ?? '',
       program_type: u.program_type ?? '',
+      administrative_title: u.administrative_title ?? '',
+      role: u.role ?? 'preacher',
       password: '',
     })
+    setEditTagIds((u.tags ?? []).map((t) => t.id))
     setEditError('')
   }
 
@@ -199,7 +217,10 @@ export default function UsersSection() {
         region: editForm.region.trim() || null,
         governorate: editForm.governorate.trim() || null,
         program_type: editForm.program_type || null,
+        administrative_title: editForm.administrative_title.trim() || null,
+        role: editForm.role || 'preacher',
         password: editForm.password.trim() || null,
+        tag_ids: editTagIds,
       })
       setEditingUser(null)
       loadUsers()
@@ -536,6 +557,8 @@ export default function UsersSection() {
                     <th className="py-2 px-2 font-semibold text-darkGray">رقم الهوية</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">المنطقة</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">المحافظة</th>
+                    <th className="py-2 px-2 font-semibold text-darkGray">المسمى الإداري</th>
+                    <th className="py-2 px-2 font-semibold text-darkGray">الصفات</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">البرنامج</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">الدور</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">إجراءات</th>
@@ -549,6 +572,8 @@ export default function UsersSection() {
                       <td className="py-2 px-2 text-darkGray">{u.id_number ?? '—'}</td>
                       <td className="py-2 px-2 text-darkGray">{u.region ?? '—'}</td>
                       <td className="py-2 px-2 text-darkGray">{u.governorate ?? '—'}</td>
+                      <td className="py-2 px-2 text-darkGray">{u.administrative_title ?? '—'}</td>
+                      <td className="py-2 px-2 text-darkGray"><TagChips tags={u.tags} /></td>
                       <td className="py-2 px-2 text-darkGray">
                         {u.program_type ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal/10 text-teal border border-teal/20 whitespace-nowrap">
@@ -558,7 +583,7 @@ export default function UsersSection() {
                           '—'
                         )}
                       </td>
-                      <td className="py-2 px-2 text-darkGray">{u.role === 'admin' ? 'أدمن' : 'داعية'}</td>
+                      <td className="py-2 px-2 text-darkGray">{roleLabel(u.role)}</td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
                           {u.role !== 'admin' && (
@@ -687,6 +712,29 @@ export default function UsersSection() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">المسمى الإداري</label>
+                <input
+                  type="text"
+                  value={form.administrative_title}
+                  onChange={(e) => setForm({ ...form, administrative_title: e.target.value })}
+                  placeholder="اختياري"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                />
+              </div>
+              <TagsSelect value={formTagIds} onChange={setFormTagIds} />
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">الدور *</label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                >
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
               {formError && <p className="text-sm text-coral">{formError}</p>}
               <div className="flex gap-2 pt-2">
                 <button
@@ -770,6 +818,29 @@ export default function UsersSection() {
                 >
                   <option value="">بدون تحديد</option>
                   {PROGRAM_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">المسمى الإداري</label>
+                <input
+                  type="text"
+                  value={editForm.administrative_title}
+                  onChange={(e) => setEditForm({ ...editForm, administrative_title: e.target.value })}
+                  placeholder="اختياري"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                />
+              </div>
+              <TagsSelect value={editTagIds} onChange={setEditTagIds} />
+              <div>
+                <label className="block text-sm font-medium text-darkGray mb-1">الدور *</label>
+                <select
+                  value={editForm.role}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray"
+                >
+                  {ROLE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>

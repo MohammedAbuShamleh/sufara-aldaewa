@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/auth'
+import { canViewReports } from '../../constants/roles'
 import '../../styles/theme.css'
 
 function Login() {
@@ -20,7 +21,7 @@ function Login() {
     try {
       const data = await login(identifier, password)
       const user = data.user
-      if (user?.role === 'admin') {
+      if (canViewReports(user?.role)) {
         navigate('/dashboard')
       } else {
         navigate('/form')

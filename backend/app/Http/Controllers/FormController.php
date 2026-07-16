@@ -43,14 +43,30 @@ class FormController extends Controller
 
     public function index(Request $request)
     {
-        $query = Form::with(['user', 'activities']);
+        $user = $request->user();
+        if (! $user || ! $user->canViewReports()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
-        if ($request->has('preacher_name')) {
+        // تقييد إلى ما يقع ضمن نطاق رؤية العارض (المحافظة / الفريق)
+        $query = Form::with(['user', 'activities'])->visibleTo($user);
+
+        if ($request->filled('preacher_name')) {
             $query->where('preacher_name', 'like', '%' . $request->preacher_name . '%');
         }
 
-        if ($request->has('sub_region')) {
-            $query->where('sub_region', 'like', '%' . $request->sub_region . '%');
+        // المنطقة الفرعية (forms.sub_region): مطابقة تامة على النموذج مباشرة
+        if ($request->filled('sub_region')) {
+            $query->where('sub_region', $request->sub_region);
+        }
+
+        // الفريق (users.region): مطابقة تامة على بيانات الداعية — فلتر منفصل
+        if ($request->filled('team')) {
+            $query->whereHas('user', fn ($q) => $q->where('region', $request->team));
+        }
+
+        if ($request->filled('governorate')) {
+            $query->whereHas('user', fn ($q) => $q->where('governorate', $request->governorate));
         }
 
         $forms = $query->orderBy('created_at', 'desc')->get();
@@ -111,7 +127,7 @@ class FormController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        if ($form->user_id !== $user->id && $user->role !== 'admin') {
+        if (! $form->isVisibleTo($user)) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
         return response()->json($form->load(['user', 'activities']));
@@ -143,7 +159,8 @@ class FormController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-        if ($form->user_id !== $user->id && $user->role !== 'admin') {
+        // الحذف: صاحب النموذج أو أصحاب صلاحية "كل التقارير" فقط
+        if ($form->user_id !== $user->id && ! $user->canViewAllReports()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
         $form->delete();

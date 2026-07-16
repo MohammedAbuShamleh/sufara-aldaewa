@@ -8,6 +8,8 @@ interface User {
   role?: string
   region?: string
   governorate?: string
+  administrative_title?: string | null
+  program_type?: string | null
   id_number?: string
 }
 

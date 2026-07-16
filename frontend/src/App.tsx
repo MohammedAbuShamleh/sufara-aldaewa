@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard/Dashboard'
 import PreacherProfile from './components/Dashboard/PreacherProfile'
 import MultiStepForm from './components/Form/MultiStepForm'
 import { AuthProvider, useAuth } from './services/auth'
+import { canViewReports } from './constants/roles'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -19,7 +20,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
+// لوحة التقارير: متاحة لكل أدوار المشرفين (بنطاق كلٌّ حسب صلاحيته)
+function ReportsRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -30,7 +32,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />
   }
 
-  if (user.role !== 'admin') {
+  if (!canViewReports(user.role)) {
     return <Navigate to="/form" replace />
   }
 
@@ -46,17 +48,17 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <AdminRoute>
+              <ReportsRoute>
                 <Dashboard />
-              </AdminRoute>
+              </ReportsRoute>
             }
           />
           <Route
             path="/dashboard/preacher/:id"
             element={
-              <AdminRoute>
+              <ReportsRoute>
                 <PreacherProfile />
-              </AdminRoute>
+              </ReportsRoute>
             }
           />
           <Route

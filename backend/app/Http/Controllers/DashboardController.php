@@ -4,69 +4,68 @@ namespace App\Http\Controllers;
 
 use App\Models\Form;
 use App\Models\User;
-use App\Models\Activity;
+use App\Services\PreacherReportService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function summary(Request $request)
+    /** يتحقق من أن العارض يحق له فتح لوحة التقارير، ويعيده. */
+    private function viewerOrAbort(Request $request): User
     {
-        // فلترة حسب الشهر والسنة (افتراضياً: الشهر الحالي)
-        $month = $request->input('month', (int) date('n'));
-        $year = $request->input('year', (int) date('Y'));
+        $user = $request->user();
+        if (! $user || ! $user->canViewReports()) {
+            abort(403, 'غير مصرّح بعرض التقارير');
+        }
+        return $user;
+    }
 
-        // نبدأ من كل الدعاة (وليس من النماذج) ليظهر الجميع حتى من لم يُدخل نموذجاً
-        $usersQuery = User::where('role', 'preacher');
+    public function summary(Request $request, PreacherReportService $reports)
+    {
+        $viewer = $this->viewerOrAbort($request);
 
-        if ($request->filled('preacher_name')) {
-            $usersQuery->where('name', 'like', '%' . $request->preacher_name . '%');
+        // مصدر واحد للملخّص يشترك فيه التصدير (لا يفترقان)
+        $summary = $reports->summary($viewer, $request->all());
+
+        return response()->json($summary);
+    }
+
+    /** المحافظات المتاحة ضمن نطاق العارض (لملء قائمة الفلترة). */
+    public function governorates(Request $request)
+    {
+        $viewer = $this->viewerOrAbort($request);
+
+        $governorates = User::where('role', User::ROLE_PREACHER)
+            ->visibleToViewer($viewer)
+            ->whereNotNull('governorate')
+            ->where('governorate', '!=', '')
+            ->distinct()
+            ->orderBy('governorate')
+            ->pluck('governorate')
+            ->values();
+
+        return response()->json($governorates);
+    }
+
+    /**
+     * المناطق الفرعية (forms.sub_region) المتاحة ضمن نطاق العارض.
+     * ملاحظة: المنطقة الفرعية حقلٌ جغرافي على النموذج (forms) وليست الفريق (users.region).
+     * يمكن تقييدها إضافياً بمحافظة عبر ?governorate= (يُطبَّق على محافظة الداعية صاحب النموذج).
+     */
+    public function subRegions(Request $request)
+    {
+        $viewer = $this->viewerOrAbort($request);
+
+        $query = Form::visibleTo($viewer)
+            ->whereNotNull('sub_region')
+            ->where('sub_region', '!=', '');
+
+        if ($request->filled('governorate')) {
+            $governorate = $request->governorate;
+            $query->whereHas('user', fn ($q) => $q->where('governorate', $governorate));
         }
 
-        if ($request->filled('sub_region')) {
-            $usersQuery->where('region', 'like', '%' . $request->sub_region . '%');
-        }
+        $subRegions = $query->distinct()->orderBy('sub_region')->pluck('sub_region')->values();
 
-        if ($request->filled('program_type')) {
-            $usersQuery->where('program_type', $request->program_type);
-        }
-
-        $users = $usersQuery->orderBy('name')->get();
-
-        // نماذج الشهر المطلوب مع أنشطتها، مفهرسة بمعرّف الداعية
-        $forms = Form::with('activities')
-            ->where('month', $month)
-            ->where('year', $year)
-            ->get()
-            ->keyBy('user_id');
-
-        $summary = $users->map(function ($user) use ($forms) {
-            $form = $forms->get($user->id);
-            $activities = $form ? $form->activities : collect();
-
-            return [
-                'form_id' => $form?->id,
-                'user_id' => $user->id,
-                'preacher_name' => $form?->preacher_name ?: $user->name,
-                'sub_region' => $form?->sub_region ?: $user->region,
-                'governorate' => $user->governorate,
-                'program_type' => $user->program_type,
-                'has_form' => (bool) $form,
-                'created_at' => $form?->created_at,
-                'summary' => [
-                    'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
-                    'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
-                    'sermons' => $activities->where('activity_type', 'sermon')->count(),
-                    'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
-                    'tours' => $activities->where('activity_type', 'tour')->count(),
-                    'forums' => $activities->where('activity_type', 'forum')->count(),
-                    'media' => $activities->where('activity_type', 'media')->count(),
-                    'visits' => $activities->where('activity_type', 'visit')->count(),
-                    'reform' => $activities->where('activity_type', 'reform')->count(),
-                    'other' => $activities->where('activity_type', 'other')->count(),
-                ],
-            ];
-        });
-
-        return response()->json($summary->values());
+        return response()->json($subRegions);
     }
 }

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Header from '../Layout/Header'
 import api from '../../services/api'
 import { PROGRAM_OPTIONS, programLabel } from '../../constants/programs'
+import { type Tag } from '../../constants/tags'
+import { TagsSelect, TagChips } from './TagsSelect'
 import '../../styles/theme.css'
 
 interface FormMonth {
@@ -32,7 +34,9 @@ interface Preacher {
   region: string | null
   governorate: string | null
   program_type: string | null
+  administrative_title: string | null
   role: string
+  tags?: Tag[]
   forms: FormMonth[]
 }
 
@@ -68,8 +72,10 @@ function PreacherProfile() {
     region: '',
     governorate: '',
     program_type: '',
+    administrative_title: '',
     password: '',
   })
+  const [editTagIds, setEditTagIds] = useState<number[]>([])
   const [editError, setEditError] = useState('')
   const [editSaving, setEditSaving] = useState(false)
 
@@ -82,8 +88,10 @@ function PreacherProfile() {
       region: preacher.region ?? '',
       governorate: preacher.governorate ?? '',
       program_type: preacher.program_type ?? '',
+      administrative_title: preacher.administrative_title ?? '',
       password: '',
     })
+    setEditTagIds((preacher.tags ?? []).map((t) => t.id))
     setEditError('')
     setEditOpen(true)
   }
@@ -105,7 +113,9 @@ function PreacherProfile() {
         region: editForm.region.trim() || null,
         governorate: editForm.governorate.trim() || null,
         program_type: editForm.program_type || null,
+        administrative_title: editForm.administrative_title.trim() || null,
         password: editForm.password.trim() || null,
+        tag_ids: editTagIds,
       })
       setPreacher((prev) =>
         prev
@@ -117,6 +127,8 @@ function PreacherProfile() {
               region: res.data.region,
               governorate: res.data.governorate,
               program_type: res.data.program_type,
+              administrative_title: res.data.administrative_title,
+              tags: res.data.tags,
             }
           : prev,
       )
@@ -262,6 +274,7 @@ function PreacherProfile() {
               { label: 'رقم الهوية', value: preacher.id_number },
               { label: 'المنطقة',    value: preacher.region },
               { label: 'المحافظة',   value: preacher.governorate },
+              { label: 'المسمى الإداري', value: preacher.administrative_title },
               { label: 'البرنامج',   value: programLabel(preacher.program_type) || null },
               { label: 'البريد',     value: preacher.email },
             ].map(({ label, value }) => (
@@ -270,6 +283,12 @@ function PreacherProfile() {
                 <p className="text-slate-700 font-semibold text-sm">{value || '—'}</p>
               </div>
             ))}
+          </div>
+
+          {/* الصفات */}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-xs text-slate-400 font-medium mb-1.5">الصفات</p>
+            <TagChips tags={preacher.tags} />
           </div>
         </div>
 
@@ -467,6 +486,17 @@ function PreacherProfile() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">المسمى الإداري</label>
+                <input
+                  type="text"
+                  value={editForm.administrative_title}
+                  onChange={(e) => setEditForm({ ...editForm, administrative_title: e.target.value })}
+                  placeholder="اختياري"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-slate-50 text-slate-700"
+                />
+              </div>
+              <TagsSelect value={editTagIds} onChange={setEditTagIds} />
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">كلمة مرور جديدة</label>
                 <input

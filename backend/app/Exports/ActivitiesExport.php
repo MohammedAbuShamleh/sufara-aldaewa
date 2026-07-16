@@ -21,7 +21,7 @@ class ActivitiesExport implements WithMultipleSheets
 
     public function __construct(Form $form)
     {
-        $this->form = $form->load('activities');
+        $this->form = $form->load('activities', 'user');
     }
 
     public function sheets(): array
@@ -39,7 +39,7 @@ class ActivitiesDetailSheet implements FromCollection, WithHeadings, WithMapping
 
     public function __construct(Form $form)
     {
-        $this->form = $form->load('activities');
+        $this->form = $form->load('activities', 'user');
     }
 
     public function collection()
@@ -107,7 +107,7 @@ class ActivitiesSummarySheet implements FromCollection, WithHeadings, WithMappin
 
     public function __construct(Form $form)
     {
-        $this->form = $form->load('activities');
+        $this->form = $form->load('activities', 'user');
     }
 
     public function collection()
@@ -121,6 +121,14 @@ class ActivitiesSummarySheet implements FromCollection, WithHeadings, WithMappin
             [
                 'label' => 'المنطقة الفرعية',
                 'value' => $this->form->sub_region ?? '',
+            ],
+            [
+                'label' => 'المحافظة',
+                'value' => $this->form->user?->governorate ?? '',
+            ],
+            [
+                'label' => 'المسمى الإداري',
+                'value' => $this->form->user?->administrative_title ?? '',
             ],
             [
                 'label' => 'عدد الدروس الوعظية',
