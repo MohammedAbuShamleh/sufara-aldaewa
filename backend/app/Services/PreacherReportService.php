@@ -47,13 +47,15 @@ class PreacherReportService
             $usersQuery->where('governorate', $filters['governorate']);
         }
 
-        // المنطقة الفرعية (forms.sub_region): قيّد الدعاة الذين لديهم نموذج فيها لهذا الشهر
+        // المنطقة الفرعية (forms.sub_region): أظهر كل من ينتمي إليها — أي مَن له نموذج
+        // بهذه المنطقة في أي شهر — وليس فقط من سلّم هذا الشهر، حتى يظهر كامل أعضاء
+        // المنطقة بمن فيهم المتخلّفون عن التسليم. (حالة التسليم لهذا الشهر تُحسب لاحقاً
+        // بشكل مستقل عبر has_form). المنطقة الفرعية لا تُخزَّن إلا على النماذج، فالانتماء
+        // يُستنتج من سجلّ نماذج العضو.
         if (! empty($filters['sub_region'])) {
             $subRegion = $filters['sub_region'];
-            $usersQuery->whereHas('forms', function ($q) use ($subRegion, $month, $year) {
-                $q->where('sub_region', $subRegion)
-                    ->where('month', $month)
-                    ->where('year', $year);
+            $usersQuery->whereHas('forms', function ($q) use ($subRegion) {
+                $q->where('sub_region', $subRegion);
             });
         }
 
