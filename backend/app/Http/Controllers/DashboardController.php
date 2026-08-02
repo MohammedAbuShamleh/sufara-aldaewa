@@ -48,24 +48,42 @@ class DashboardController extends Controller
     }
 
     /**
-     * المناطق الفرعية (forms.sub_region) المتاحة ضمن نطاق العارض.
-     * ملاحظة: المنطقة الفرعية حقلٌ جغرافي على النموذج (forms) وليست الفريق (users.region).
-     * يمكن تقييدها إضافياً بمحافظة عبر ?governorate= (يُطبَّق على محافظة الداعية صاحب النموذج).
+     * المناطق المتاحة ضمن نطاق العارض (لملء قائمة الفلترة).
+     *
+     * تُجمع من مصدرين لأن المنطقة تُسجَّل في مكانين: على المستخدم (users.region)
+     * وعلى النموذج (forms.sub_region). الاعتماد على النماذج وحدها كان يُخفي أي منطقة
+     * لم يُسلّم أعضاؤها نماذج بعد — رغم أن التصفية عليها تعمل. الاتحاد هنا يطابق
+     * منطق التصفية في PreacherReportService::summary.
+     *
+     * يمكن التقييد بمحافظة عبر ?governorate= (يُطبَّق على محافظة المستخدم في الحالتين).
      */
     public function subRegions(Request $request)
     {
         $viewer = $this->viewerOrAbort($request);
+        $governorate = $request->filled('governorate') ? $request->governorate : null;
 
-        $query = Form::visibleTo($viewer)
+        // (أ) مناطق المستخدمين ضمن النطاق
+        $fromUsers = User::query()
+            ->visibleToViewer($viewer)
+            ->whereNotNull('region')
+            ->where('region', '!=', '')
+            ->when($governorate, fn ($q) => $q->where('governorate', $governorate))
+            ->distinct()
+            ->pluck('region');
+
+        // (ب) مناطق مكتوبة على النماذج ضمن النطاق
+        $fromForms = Form::visibleTo($viewer)
             ->whereNotNull('sub_region')
-            ->where('sub_region', '!=', '');
+            ->where('sub_region', '!=', '')
+            ->when($governorate, fn ($q) => $q->whereHas('user', fn ($u) => $u->where('governorate', $governorate)))
+            ->distinct()
+            ->pluck('sub_region');
 
-        if ($request->filled('governorate')) {
-            $governorate = $request->governorate;
-            $query->whereHas('user', fn ($q) => $q->where('governorate', $governorate));
-        }
-
-        $subRegions = $query->distinct()->orderBy('sub_region')->pluck('sub_region')->values();
+        $subRegions = $fromUsers
+            ->concat($fromForms)
+            ->unique()
+            ->sort(fn ($a, $b) => strcoll($a, $b))
+            ->values();
 
         return response()->json($subRegions);
     }

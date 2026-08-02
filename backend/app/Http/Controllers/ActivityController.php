@@ -36,6 +36,10 @@ class ActivityController extends Controller
                 return response()->json(['message' => 'Forbidden'], 403);
             }
             $query->where('form_id', $formId);
+        } else {
+            // بدون تحديد نموذج: قيّد النتائج بنطاق رؤية الطالب حتى لا تُسرَّب أنشطة
+            // الدعاة خارج نطاقه (كان الاستعلام يُعيد كل الأنشطة في النظام).
+            $query->whereHas('form', fn ($q) => $q->visibleTo($user));
         }
 
         if ($request->has('activity_type')) {
