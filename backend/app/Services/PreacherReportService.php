@@ -24,14 +24,29 @@ class PreacherReportService
         $month = (int) ($filters['month'] ?? date('n'));
         $year = (int) ($filters['year'] ?? date('Y'));
 
-        // نبدأ من الدعاة المشمولين بالتقارير ضمن نطاق العارض:
-        //  - من دوره "داعية" (يظهر حتى لو لم يُسلّم نموذجاً)، أو
-        //  - أي مستخدم عبّأ نموذج هذا الشهر (بأي دور) — فيظهر أصحاب المسمّى/الدور الإداري.
-        // نحمّل الصفات مسبقاً لعرضها في كل صف (طبقة تصنيف فقط، لا تؤثر على النطاق)
+        $subRegion = $filters['sub_region'] ?? null;
+
+        // نبدأ من المستخدمين ضمن نطاق العارض، مع تحميل الصفات مسبقاً
+        // (الصفات طبقة تصنيف فقط، لا تؤثر على النطاق).
         $usersQuery = User::query()
             ->with('tags')
-            ->visibleToViewer($viewer)
-            ->reportable($month, $year);
+            ->visibleToViewer($viewer);
+
+        if (! empty($subRegion)) {
+            // عند تصفية "منطقة فرعية": نعرض كامل روستر المنطقة — كل من ينتمي إليها سواء
+            // بمنطقته المسجّلة (users.region) أو بمنطقة نموذجٍ عبّأه (forms.sub_region) —
+            // بغضّ النظر عن الدور أو التسليم، ليتطابق تماماً مع فلتر "المنطقة" في إدارة
+            // المستخدمين. حالة التسليم لكلٍّ تُحسب لاحقاً بشكل مستقل (has_form).
+            $usersQuery->where(function ($q) use ($subRegion) {
+                $q->where('region', $subRegion)
+                    ->orWhereHas('forms', fn ($f) => $f->where('sub_region', $subRegion));
+            });
+        } else {
+            // الوضع الافتراضي (بلا تصفية منطقة): الدعاة المشمولون بالتقارير:
+            //  - من دوره "داعية" (يظهر حتى لو لم يُسلّم نموذجاً)، أو
+            //  - أي مستخدم عبّأ نموذج هذا الشهر (بأي دور) — فيظهر أصحاب الدور الإداري.
+            $usersQuery->reportable($month, $year);
+        }
 
         // فلترة اختيارية حسب الصفة (tag) — الدعاة الذين يحملون الصفة المطلوبة
         if (! empty($filters['tag_id'])) {
@@ -47,17 +62,7 @@ class PreacherReportService
             $usersQuery->where('governorate', $filters['governorate']);
         }
 
-        // المنطقة الفرعية (forms.sub_region): أظهر كل من ينتمي إليها — أي مَن له نموذج
-        // بهذه المنطقة في أي شهر — وليس فقط من سلّم هذا الشهر، حتى يظهر كامل أعضاء
-        // المنطقة بمن فيهم المتخلّفون عن التسليم. (حالة التسليم لهذا الشهر تُحسب لاحقاً
-        // بشكل مستقل عبر has_form). المنطقة الفرعية لا تُخزَّن إلا على النماذج، فالانتماء
-        // يُستنتج من سجلّ نماذج العضو.
-        if (! empty($filters['sub_region'])) {
-            $subRegion = $filters['sub_region'];
-            $usersQuery->whereHas('forms', function ($q) use ($subRegion) {
-                $q->where('sub_region', $subRegion);
-            });
-        }
+        // (تُطبَّق تصفية المنطقة الفرعية أعلاه على مستوى الروستر — انظر بناء $usersQuery.)
 
         // الفريق (users.region): فلتر منفصل تماماً عن المنطقة الفرعية
         if (! empty($filters['team'])) {
