@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/auth'
-import { canViewReports } from '../../constants/roles'
+import { canViewAllReports } from '../../constants/roles'
 import '../../styles/theme.css'
 
 function Login() {
@@ -21,7 +21,10 @@ function Login() {
     try {
       const data = await login(identifier, password)
       const user = data.user
-      if (canViewReports(user?.role)) {
+      // الأدوار المركزية المكتبية (أدمن/سكرتير/مركزي) تهبط على لوحة التقارير مباشرةً.
+      // بقية الأدوار الميدانية — بما فيها مسؤول الفريق/المحافظة — تهبط على نموذجها أولاً،
+      // وتنتقل للوحة التقارير عند الحاجة عبر زر «لوحة التقارير» في هيدر النموذج.
+      if (canViewAllReports(user?.role)) {
         navigate('/dashboard')
       } else {
         navigate('/form')

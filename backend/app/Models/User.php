@@ -117,6 +117,24 @@ class User extends Authenticatable
     }
 
     /**
+     * الدعاة المشمولون بالتقارير الشهرية:
+     *  - كل من دوره "داعية" (يظهر حتى لو لم يُدخل نموذجاً — لرصد من لم يُسلّم)، أو
+     *  - أي مستخدم عبّأ نموذجاً (بأي دور) — ليظهر الدعاة الذين لهم مسمى/دور إداري.
+     * إن مُرِّر $month و $year قُيِّد وجود النموذج بذلك الشهر تحديداً؛ وإلا فأي نموذج.
+     */
+    public function scopeReportable(Builder $query, ?int $month = null, ?int $year = null): Builder
+    {
+        return $query->where(function (Builder $q) use ($month, $year) {
+            $q->where('role', self::ROLE_PREACHER)
+                ->orWhereHas('forms', function (Builder $fq) use ($month, $year) {
+                    if ($month !== null && $year !== null) {
+                        $fq->where('month', $month)->where('year', $year);
+                    }
+                });
+        });
+    }
+
+    /**
      * تقييد استعلام على المستخدمين (الدعاة) إلى من يقع ضمن نطاق رؤية العارض.
      *  - أدوار "كل التقارير": بدون تقييد.
      *  - مسؤول المحافظة: نفس المحافظة.

@@ -1,10 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../services/auth'
+import { canViewReports } from '../../constants/roles'
 import '../../styles/theme.css'
 
 function FormHeader() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  // أصحاب الأدوار الإدارية (مسؤول فريق/محافظة…) لهم طبيعة مزدوجة:
+  // يعبّئون نموذجهم الميداني هنا، ويتابعون إنجازات فريقهم عبر لوحة التقارير.
+  const showReportsToggle = canViewReports(user?.role)
 
   const handleLogout = async () => {
     await logout()
@@ -50,6 +55,16 @@ function FormHeader() {
                 <span className="text-[10px] text-white/40 leading-tight">{user.region || 'بدون منطقة'}</span>
               </div>
             </div>
+            {showReportsToggle && (
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                title="عرض إنجازات فريقك ومتابعة التقارير"
+                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white hover:text-teal-dark text-xs font-semibold transition-all duration-200 border border-white/15"
+              >
+                📊 لوحة التقارير
+              </button>
+            )}
             <button
               type="button"
               onClick={handleLogout}

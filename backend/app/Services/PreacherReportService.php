@@ -24,11 +24,14 @@ class PreacherReportService
         $month = (int) ($filters['month'] ?? date('n'));
         $year = (int) ($filters['year'] ?? date('Y'));
 
-        // نبدأ من الدعاة ضمن نطاق العارض (ليظهر الجميع حتى من لم يُدخل نموذجاً)
+        // نبدأ من الدعاة المشمولين بالتقارير ضمن نطاق العارض:
+        //  - من دوره "داعية" (يظهر حتى لو لم يُسلّم نموذجاً)، أو
+        //  - أي مستخدم عبّأ نموذج هذا الشهر (بأي دور) — فيظهر أصحاب المسمّى/الدور الإداري.
         // نحمّل الصفات مسبقاً لعرضها في كل صف (طبقة تصنيف فقط، لا تؤثر على النطاق)
-        $usersQuery = User::where('role', User::ROLE_PREACHER)
+        $usersQuery = User::query()
             ->with('tags')
-            ->visibleToViewer($viewer);
+            ->visibleToViewer($viewer)
+            ->reportable($month, $year);
 
         // فلترة اختيارية حسب الصفة (tag) — الدعاة الذين يحملون الصفة المطلوبة
         if (! empty($filters['tag_id'])) {

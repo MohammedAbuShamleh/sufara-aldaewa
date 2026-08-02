@@ -210,7 +210,7 @@ export default function UsersSection() {
     }
     setEditLoading(true)
     try {
-      await api.put(`/users/${editingUser.id}`, {
+      const res = await api.put(`/users/${editingUser.id}`, {
         name: editForm.name.trim(),
         email: editForm.email.trim() || null,
         id_number: editForm.id_number.trim() || null,
@@ -222,6 +222,10 @@ export default function UsersSection() {
         password: editForm.password.trim() || null,
         tag_ids: editTagIds,
       })
+      // نحدّث الصف فوراً من رد الخادم (المصدر الموثوق) حتى تظهر القيمة الجديدة
+      // مباشرةً دون الاعتماد على إعادة الجلب — تفادياً لأي كاش على GET /users.
+      const updatedId = editingUser.id
+      setUsers((prev) => prev.map((u) => (u.id === updatedId ? { ...u, ...res.data } : u)))
       setEditingUser(null)
       loadUsers()
     } catch (err: any) {

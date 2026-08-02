@@ -34,7 +34,8 @@ class DashboardController extends Controller
     {
         $viewer = $this->viewerOrAbort($request);
 
-        $governorates = User::where('role', User::ROLE_PREACHER)
+        $governorates = User::query()
+            ->reportable()
             ->visibleToViewer($viewer)
             ->whereNotNull('governorate')
             ->where('governorate', '!=', '')
