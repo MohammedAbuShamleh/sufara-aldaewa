@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import api from './api'
 
 interface User {
@@ -11,6 +11,10 @@ interface User {
   administrative_title?: string | null
   program_type?: string | null
   id_number?: string
+  // القرار تجاه النسخة الحالية من عقد الكفالة (يأتي من /login و /user)
+  contract_decision?: 'agreed' | 'declined' | 'pending'
+  contract_agreed?: boolean
+  contract_responded_at?: string | null
 }
 
 interface AuthContextType {
@@ -18,6 +22,8 @@ interface AuthContextType {
   loading: boolean
   login: (identifier: string, password: string) => Promise<{ user: User; token: string }>
   logout: () => void
+  /** تحديث قرار العقد محلياً بعد توثيق الرد، دون إعادة جلب المستخدم. */
+  setContractDecision: (decision: 'agreed' | 'declined', respondedAt?: string | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -55,6 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     throw new Error('Invalid response from server')
   }
 
+  const setContractDecision = useCallback(
+    (decision: 'agreed' | 'declined', respondedAt?: string | null) => {
+      setUser((current) => {
+        if (!current || current.contract_decision === decision) return current
+        return {
+          ...current,
+          contract_decision: decision,
+          contract_agreed: decision === 'agreed',
+          contract_responded_at: respondedAt ?? new Date().toISOString(),
+        }
+      })
+    },
+    [],
+  )
+
   const logout = async () => {
     try {
       await api.post('/logout')
@@ -67,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setContractDecision }}>
       {children}
     </AuthContext.Provider>
   )

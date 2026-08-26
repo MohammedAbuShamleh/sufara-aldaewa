@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            // يحجب بيانات النظام عمّن لم يوافق على عقد الكفالة (حجب الواجهة وحده لا يكفي)
+            'contract.agreed' => \App\Http\Middleware\EnsureContractAgreed::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

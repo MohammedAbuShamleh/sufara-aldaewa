@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -94,6 +95,38 @@ class User extends Authenticatable
             'id' => $tag->id,
             'name' => $tag->name,
         ])->values()->all();
+    }
+
+    // ── عقد الكفالة الإلكتروني ────────────────────────────────
+
+    /** حالات المستخدم تجاه النسخة الحالية من العقد. */
+    public const CONTRACT_PENDING = 'pending';   // لم يردّ بعد
+
+    /** كل ردود المستخدم على نسخ العقد (سجل إثبات تراكمي). */
+    public function contractResponses(): HasMany
+    {
+        return $this->hasMany(ContractResponse::class);
+    }
+
+    /** ردّ المستخدم على النسخة الحالية من العقد إن وُجد (يستفيد من التحميل المسبق). */
+    public function currentContractResponse(?string $version = null): ?ContractResponse
+    {
+        $version ??= (string) config('contract.version');
+
+        return $this->contractResponses
+            ->firstWhere('contract_version', $version);
+    }
+
+    /** قرار المستخدم تجاه النسخة الحالية: agreed | declined | pending. */
+    public function contractDecision(?string $version = null): string
+    {
+        return $this->currentContractResponse($version)?->decision ?? self::CONTRACT_PENDING;
+    }
+
+    /** هل وافق المستخدم على النسخة الحالية من العقد؟ (شرط دخول النظام) */
+    public function hasAgreedToContract(?string $version = null): bool
+    {
+        return $this->contractDecision($version) === ContractResponse::DECISION_AGREED;
     }
 
     // ── الصلاحيات ─────────────────────────────────────────────

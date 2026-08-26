@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ContractResponse;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -40,7 +41,12 @@ class UserController extends Controller
     {
         $this->ensureAdmin($request);
 
-        $query = User::query()->with('tags');
+        $contractVersion = (string) config('contract.version');
+
+        $query = User::query()
+            ->with('tags')
+            // نحمّل ردود النسخة الحالية فقط — يكفي لعمود «العقد» دون جلب السجل كاملاً.
+            ->with(['contractResponses' => fn ($q) => $q->where('contract_version', $contractVersion)]);
 
         // فلترة حسب الصفة (tag) — أي مستخدم يحمل أياً من الصفات المطلوبة (ANY)
         $tagIds = $this->requestedTagIds($request);
@@ -63,7 +69,19 @@ class UserController extends Controller
             $query->where('program_type', $request->program_type);
         }
 
-        $users = $query->orderBy('name')->get()->map(function ($user) {
+        // فلترة حسب القرار تجاه العقد: agreed | declined | pending (لم يردّ بعد)
+        $contractFilter = $request->input('contract_status');
+        if (in_array($contractFilter, [ContractResponse::DECISION_AGREED, ContractResponse::DECISION_DECLINED], true)) {
+            $query->whereHas('contractResponses', fn ($q) => $q
+                ->where('contract_version', $contractVersion)
+                ->where('decision', $contractFilter));
+        } elseif ($contractFilter === User::CONTRACT_PENDING) {
+            $query->whereDoesntHave('contractResponses', fn ($q) => $q->where('contract_version', $contractVersion));
+        }
+
+        $users = $query->orderBy('name')->get()->map(function ($user) use ($contractVersion) {
+            $response = $user->currentContractResponse($contractVersion);
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -75,6 +93,8 @@ class UserController extends Controller
                 'administrative_title' => $user->administrative_title,
                 'role' => $user->role,
                 'tags' => $user->tagsArray(),
+                'contract_decision' => $response?->decision ?? User::CONTRACT_PENDING,
+                'contract_responded_at' => $response?->responded_at?->toIso8601String(),
             ];
         });
 
