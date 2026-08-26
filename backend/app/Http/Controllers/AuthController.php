@@ -33,7 +33,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => $this->userPayload($user),
             'token' => $token,
         ]);
     }
@@ -47,7 +47,26 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json($this->userPayload($request->user()));
+    }
+
+    /**
+     * بيانات المستخدم كما تحتاجها الواجهة، مضافاً إليها قراره تجاه النسخة الحالية
+     * من عقد الكفالة — حتى تعرف الواجهة فوراً هل تحجبه على شاشة العقد.
+     */
+    private function userPayload(User $user): array
+    {
+        $user->loadMissing('contractResponses');
+        $response = $user->currentContractResponse();
+
+        // لا حاجة لإرسال سجل الردود كاملاً مع بيانات المستخدم — يكفي القرار وتاريخه.
+        $user->unsetRelation('contractResponses');
+
+        return $user->toArray() + [
+            'contract_decision' => $response?->decision ?? User::CONTRACT_PENDING,
+            'contract_agreed' => $response?->isAgreed() ?? false,
+            'contract_responded_at' => $response?->responded_at?->toIso8601String(),
+        ];
     }
 
     public function updateMyNotes(Request $request)

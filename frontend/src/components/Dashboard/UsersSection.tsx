@@ -19,6 +19,15 @@ interface UserRow {
   administrative_title: string | null
   role: string
   tags?: Tag[]
+  contract_decision?: 'agreed' | 'declined' | 'pending'
+  contract_responded_at?: string | null
+}
+
+// شارات القرار تجاه عقد الكفالة (نفس ألوان كشف العقد في لوحة الإدارة)
+const CONTRACT_BADGE: Record<'agreed' | 'declined' | 'pending', { label: string; className: string }> = {
+  agreed: { label: 'موافق', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  declined: { label: 'غير موافق', className: 'bg-coral/10 text-coral border-coral/30' },
+  pending: { label: 'لم يردّ', className: 'bg-amber-50 text-amber-700 border-amber-200' },
 }
 
 export default function UsersSection() {
@@ -35,6 +44,9 @@ export default function UsersSection() {
   const regionDropdownRef = useRef<HTMLDivElement>(null)
   const [programFilter, setProgramFilter] = useState('')
   const [programDropdownOpen, setProgramDropdownOpen] = useState(false)
+
+  // فلتر القرار تجاه عقد الكفالة: '' = الكل
+  const [contractFilter, setContractFilter] = useState<'' | 'agreed' | 'declined' | 'pending'>('')
   const programDropdownRef = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null)
@@ -142,13 +154,31 @@ export default function UsersSection() {
     ),
   ).sort((a, b) => a.localeCompare(b, 'ar'))
 
-  // تطبيق فلاتر المحافظة والمنطقة الفرعية والبرنامج على المستخدمين المعروضين
+  // تطبيق فلاتر المحافظة والمنطقة الفرعية والبرنامج وحالة العقد على المستخدمين المعروضين
   const displayedUsers = users.filter(
     (u) =>
       (!governorateFilter || u.governorate === governorateFilter) &&
       (!regionFilter || u.region === regionFilter) &&
-      (!programFilter || u.program_type === programFilter),
+      (!programFilter || u.program_type === programFilter) &&
+      (!contractFilter || (u.contract_decision ?? 'pending') === contractFilter),
   )
+
+  // عدّاد الموافقين على العقد ضمن النطاق المعروض حالياً
+  const signedCount = displayedUsers.filter((u) => u.contract_decision === 'agreed').length
+
+  // تنسيق لحظة الرد بالميلادي (تاريخ + وقت مختصر)
+  const formatAgreedAt = (value?: string | null) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString('ar-EG', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -534,13 +564,41 @@ export default function UsersSection() {
               )}
             </div>
 
-            {(governorateFilter || regionFilter || programFilter) && (
+            {/* فلتر التوقيع على عقد الكفالة */}
+            <div className="inline-flex rounded-xl border border-gray-300 overflow-hidden text-sm">
+              {([
+                { value: '', label: 'الكل' },
+                { value: 'agreed', label: 'موافق' },
+                { value: 'declined', label: 'غير موافق' },
+                { value: 'pending', label: 'لم يردّ' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value || 'all'}
+                  type="button"
+                  onClick={() => setContractFilter(opt.value)}
+                  className={`px-3 py-2 font-medium transition-all border-l border-gray-200 last:border-l-0 ${
+                    contractFilter === opt.value
+                      ? 'bg-teal text-white'
+                      : 'bg-white text-darkGray hover:bg-gray-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            <span className="text-sm text-slate-500">
+              وافق <span className="font-bold text-teal">{signedCount}</span> من {displayedUsers.length}
+            </span>
+
+            {(governorateFilter || regionFilter || programFilter || contractFilter) && (
               <button
                 type="button"
                 onClick={() => {
                   setGovernorateFilter('')
                   setRegionFilter('')
                   setProgramFilter('')
+                  setContractFilter('')
                 }}
                 className="text-sm text-coral hover:underline"
               >
@@ -564,6 +622,7 @@ export default function UsersSection() {
                     <th className="py-2 px-2 font-semibold text-darkGray">المسمى الإداري</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">الصفات</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">البرنامج</th>
+                    <th className="py-2 px-2 font-semibold text-darkGray">العقد</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">الدور</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">إجراءات</th>
                   </tr>
@@ -586,6 +645,16 @@ export default function UsersSection() {
                         ) : (
                           '—'
                         )}
+                      </td>
+                      <td className="py-2 px-2">
+                        <span
+                          title={formatAgreedAt(u.contract_responded_at) ?? undefined}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${
+                            CONTRACT_BADGE[u.contract_decision ?? 'pending'].className
+                          }`}
+                        >
+                          {CONTRACT_BADGE[u.contract_decision ?? 'pending'].label}
+                        </span>
                       </td>
                       <td className="py-2 px-2 text-darkGray">{roleLabel(u.role)}</td>
                       <td className="py-2 px-2">
@@ -626,7 +695,7 @@ export default function UsersSection() {
               </table>
               {displayedUsers.length === 0 && (
                 <p className="py-6 text-center text-darkGray/70">
-                  {governorateFilter || regionFilter
+                  {governorateFilter || regionFilter || programFilter || contractFilter
                     ? `لا يوجد مستخدمون مطابقون للفلتر المحدد.`
                     : 'لا يوجد مستخدمون.'}
                 </p>

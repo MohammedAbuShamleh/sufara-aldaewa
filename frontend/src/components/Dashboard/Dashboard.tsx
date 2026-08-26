@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../Layout/Header'
 import ActivitiesTable from './ActivitiesTable'
 import UsersSection from './UsersSection'
+import ContractStatusSection from './ContractStatusSection'
 import api from '../../services/api'
 import { useAuth } from '../../services/auth'
 import { PROGRAM_OPTIONS } from '../../constants/programs'
@@ -221,6 +222,8 @@ function Dashboard() {
             </button>
           </div>
         </div>
+
+        {isAdmin && <ContractStatusSection />}
 
         {isAdmin && <UsersSection />}
 
