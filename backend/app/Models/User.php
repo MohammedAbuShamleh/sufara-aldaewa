@@ -48,6 +48,68 @@ class User extends Authenticatable
         self::ROLE_ADMIN,
     ];
 
+    /**
+     * الأسماء العربية للأدوار — مصدر واحد يخدم استيراد الإكسيل ونموذجه.
+     * يطابق ROLE_OPTIONS في الواجهة (frontend/src/constants/roles.ts).
+     */
+    public const ROLE_LABELS = [
+        self::ROLE_PREACHER => 'داعية',
+        self::ROLE_TEAM_LEADER => 'مسؤول فريق',
+        self::ROLE_GOVERNORATE_MANAGER => 'مسؤول المحافظة',
+        self::ROLE_CENTRAL_MANAGER => 'مسؤول مركزي',
+        self::ROLE_ADMIN_SECRETARY => 'السكرتير / الإداري',
+        self::ROLE_ADMIN => 'أدمن',
+    ];
+
+    /**
+     * يحوّل ما يكتبه المستخدم في خانة «الدور» إلى قيمة الدور المخزّنة.
+     *
+     * يقبل الاسم العربي كما في النموذج، أو المفتاح الإنجليزي (preacher…)،
+     * ويتسامح مع فروق المسافات وصيغ الهمزة الشائعة في الكتابة اليدوية.
+     * يُعيد null إن لم يتعرّف على القيمة، فيتولّى المستدعي التحذير.
+     */
+    public static function roleFromLabel(?string $value): ?string
+    {
+        $normalized = self::normalizeArabic((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        // المفتاح الإنجليزي كما هو مخزَّن (preacher, team_leader…)
+        if (in_array($normalized, self::ASSIGNABLE_ROLES, true)) {
+            return $normalized;
+        }
+
+        foreach (self::ROLE_LABELS as $role => $label) {
+            if (self::normalizeArabic($label) === $normalized) {
+                return $role;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * تسوية نصّ عربي للمقارنة: توحيد الهمزات والألف المقصورة والتاء المربوطة،
+     * وإزالة التشكيل والمسافات الزائدة. بدونها يفشل «مسؤول» أمام «مسئول».
+     */
+    public static function normalizeArabic(string $value): string
+    {
+        $value = trim(mb_strtolower($value));
+        $value = preg_replace('/[\x{064B}-\x{0652}\x{0640}]/u', '', $value) ?? $value;
+        // كراسي الهمزة تُحذف بدل أن تُردّ كلٌّ إلى حرفها: ردّ «ؤ» إلى «و»
+        // و«ئ» إلى «ي» يجعل «مسؤول» و«مسئول» نصّين مختلفين، وهما الصيغتان
+        // اللتان يكتبهما الناس فعلاً للكلمة نفسها.
+        $value = strtr($value, [
+            'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا',
+            'ؤ' => '', 'ئ' => '', 'ء' => '',
+            'ى' => 'ي', 'ة' => 'ه',
+        ]);
+
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+    }
+
     protected $fillable = [
         'name',
         'email',
@@ -59,6 +121,7 @@ class User extends Authenticatable
         'administrative_title',
         'role',
         'is_active',
+        'disabled_at',
         'notes',
     ];
 

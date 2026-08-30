@@ -55,7 +55,7 @@ export default function UsersSection() {
   const [togglingId, setTogglingId] = useState<number | null>(null)
   const programDropdownRef = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null)
+  const [importResult, setImportResult] = useState<{ created: number; errors: string[]; warnings?: string[] } | null>(null)
   const [templateLoading, setTemplateLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [listExpanded, setListExpanded] = useState(false)
@@ -176,8 +176,8 @@ export default function UsersSection() {
   // عدّاد الموافقين على العقد ضمن النطاق المعروض حالياً
   const signedCount = displayedUsers.filter((u) => u.contract_decision === 'agreed').length
 
-  // تنسيق لحظة الرد بالميلادي (تاريخ + وقت مختصر)
-  const formatAgreedAt = (value?: string | null) => {
+  // تنسيق لحظة (رد على العقد أو تعطيل حساب) بالميلادي: تاريخ + وقت مختصر
+  const formatDateTime = (value?: string | null) => {
     if (!value) return null
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return null
@@ -419,6 +419,17 @@ export default function UsersSection() {
               ))}
               {importResult.errors.length > 5 && (
                 <li>و {importResult.errors.length - 5} أخطاء أخرى</li>
+              )}
+            </ul>
+          )}
+          {/* تحذيرات: صفوف نجح استيرادها لكن قيمة فيها لم تُفهم (دور أو صفة) */}
+          {importResult.warnings && importResult.warnings.length > 0 && (
+            <ul className="mt-2 text-amber-700 list-disc list-inside">
+              {importResult.warnings.slice(0, 5).map((msg, i) => (
+                <li key={i}>{msg}</li>
+              ))}
+              {importResult.warnings.length > 5 && (
+                <li>و {importResult.warnings.length - 5} تنبيهات أخرى</li>
               )}
             </ul>
           )}
@@ -692,7 +703,10 @@ export default function UsersSection() {
                 </thead>
                 <tbody>
                   {displayedUsers.map((u) => (
-                    <tr key={u.id} className="border-b border-gray-100">
+                    <tr
+                      key={u.id}
+                      className={`border-b border-gray-100 ${u.is_active === false ? 'bg-slate-50/80 opacity-70' : ''}`}
+                    >
                       <td className="py-2 px-2 text-darkGray">{u.name}</td>
                       <td className="py-2 px-2 text-darkGray">{u.email ?? '—'}</td>
                       <td className="py-2 px-2 text-darkGray">{u.id_number ?? '—'}</td>
@@ -711,7 +725,7 @@ export default function UsersSection() {
                       </td>
                       <td className="py-2 px-2">
                         <span
-                          title={formatAgreedAt(u.contract_responded_at) ?? undefined}
+                          title={formatDateTime(u.contract_responded_at) ?? undefined}
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${
                             CONTRACT_BADGE[u.contract_decision ?? 'pending'].className
                           }`}
@@ -720,6 +734,20 @@ export default function UsersSection() {
                         </span>
                       </td>
                       <td className="py-2 px-2 text-darkGray">{roleLabel(u.role)}</td>
+                      <td className="py-2 px-2">
+                        {u.is_active === false ? (
+                          <span
+                            title={formatDateTime(u.disabled_at) ? `عُطِّل في ${formatDateTime(u.disabled_at)}` : undefined}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap bg-slate-100 text-slate-600 border-slate-300"
+                          >
+                            معطّل
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap bg-emerald-50 text-emerald-700 border-emerald-200">
+                            فعّال
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
                           {u.role !== 'admin' && (
@@ -738,6 +766,24 @@ export default function UsersSection() {
                           >
                             تعديل
                           </button>
+                          {currentUser?.id !== u.id && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(u)}
+                              disabled={togglingId === u.id}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all disabled:opacity-70 ${
+                                u.is_active === false
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white'
+                                  : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-600 hover:text-white'
+                              }`}
+                            >
+                              {togglingId === u.id
+                                ? 'جاري...'
+                                : u.is_active === false
+                                  ? 'تفعيل'
+                                  : 'تعطيل'}
+                            </button>
+                          )}
                           {currentUser?.id !== u.id ? (
                             <button
                               type="button"

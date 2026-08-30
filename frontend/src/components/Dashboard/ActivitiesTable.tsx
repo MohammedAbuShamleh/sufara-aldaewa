@@ -11,6 +11,7 @@ interface FormSummary {
   governorate: string | null
   program_type?: string | null
   administrative_title?: string | null
+  is_active?: boolean
   tags?: Tag[]
   has_form?: boolean
   created_at: string | null
@@ -139,6 +140,14 @@ function ActivitiesTable({ summaries, onExport, onDelete, canDelete = true }: Pr
                           نموذج فارغ
                         </span>
                       ) : null}
+                      {summary.is_active === false && (
+                        <span
+                          title="حساب معطّل — لا يستطيع الدخول، وبياناته محفوظة"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 whitespace-nowrap"
+                        >
+                          معطّل
+                        </span>
+                      )}
                     </div>
                     {summary.administrative_title && (
                       <div className="text-[11px] text-slate-400 mt-0.5">{summary.administrative_title}</div>

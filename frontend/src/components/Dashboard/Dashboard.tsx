@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Header from '../Layout/Header'
 import ActivitiesTable from './ActivitiesTable'
 import UsersSection from './UsersSection'
@@ -19,6 +19,7 @@ interface FormSummary {
   governorate: string | null
   program_type?: string | null
   administrative_title?: string | null
+  is_active?: boolean
   tags?: Tag[]
   has_form?: boolean
   created_at: string | null
@@ -50,6 +51,16 @@ function Dashboard() {
     year: new Date().getFullYear(),
   })
 
+  // إظهار الحسابات المعطّلة في التقارير — مخفيّة افتراضياً، والاختيار يُحفظ
+  // بالمتصفح حتى لا يعيده المستخدم كل مرة يفتح فيها اللوحة.
+  const [includeDisabled, setIncludeDisabled] = useState(
+    () => localStorage.getItem('dashboard:include_disabled') === '1',
+  )
+
+  useEffect(() => {
+    localStorage.setItem('dashboard:include_disabled', includeDisabled ? '1' : '0')
+  }, [includeDisabled])
+
   const tags = useTags()
 
   // خيارات الفلترة تأتي من الخادم مقيّدة بنطاق صلاحيات المستخدم
@@ -73,7 +84,7 @@ function Dashboard() {
   useEffect(() => {
     loadSummaries()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters])
+  }, [filters, includeDisabled])
 
   // قائمة المحافظات المتاحة ضمن نطاق المستخدم (تُحمّل مرة واحدة)
   useEffect(() => {
@@ -127,6 +138,7 @@ function Dashboard() {
     if (filters.sub_region) params.append('sub_region', filters.sub_region)
     if (filters.program_type) params.append('program_type', filters.program_type)
     if (filters.tag_id) params.append('tag_id', filters.tag_id)
+    if (includeDisabled) params.append('include_disabled', '1')
     return params
   }
 
@@ -200,6 +212,15 @@ function Dashboard() {
             <p className="text-sm md:text-base text-darkGray/70 mt-1">
               إدارة ومتابعة جميع الأنشطة الدعوية
             </p>
+            <Link
+              to="/dashboard/v2"
+              className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-teal hover:underline underline-offset-4"
+            >
+              جرّب الشكل الجديد (نسخة تجريبية)
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+              </svg>
+            </Link>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -432,6 +453,40 @@ function Dashboard() {
                 ))}
               </select>
             </div>
+
+            {/* إظهار/إخفاء الحسابات المعطّلة في التقارير */}
+            <div className="form-group">
+              <label className="block text-sm font-semibold text-darkGray mb-2">
+                الحسابات المعطّلة
+              </label>
+              <button
+                type="button"
+                onClick={() => setIncludeDisabled((v) => !v)}
+                title={
+                  includeDisabled
+                    ? 'المعطّلون ظاهرون في الجدول والمجاميع والتصدير'
+                    : 'المعطّلون مخفيّون، عدا من عبّأ نموذجاً في الشهر المعروض'
+                }
+                className={`w-full px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all flex items-center justify-between gap-2 ${
+                  includeDisabled
+                    ? 'border-teal bg-teal/10 text-teal'
+                    : 'border-gray-300 bg-lightBlueGray text-darkGray hover:bg-slate-100'
+                }`}
+              >
+                <span>{includeDisabled ? 'ظاهرة' : 'مخفيّة'}</span>
+                <span
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full transition-colors ${
+                    includeDisabled ? 'bg-teal' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                      includeDisabled ? 'right-0.5' : 'left-0.5'
+                    }`}
+                  />
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -546,6 +601,14 @@ function Dashboard() {
                 <span className="inline-block w-3 h-3 rounded bg-orange-200 border border-orange-300" />
                 نموذج فارغ (بدون أنشطة)
               </span>
+              {summaries.some((s) => s.is_active === false) && (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block px-1.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-300">
+                    معطّل
+                  </span>
+                  {includeDisabled ? 'حساب معطّل' : 'حساب معطّل — ظاهر لأن له نموذجاً هذا الشهر'}
+                </span>
+              )}
             </div>
 
             <ActivitiesTable
