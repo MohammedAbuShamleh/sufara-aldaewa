@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Auth/Login'
 import Dashboard from './components/Dashboard/Dashboard'
+import DashboardV2 from './components/DashboardV2/DashboardV2'
 import PreacherProfile from './components/Dashboard/PreacherProfile'
 import MultiStepForm from './components/Form/MultiStepForm'
 import ContractAgreement from './components/Contract/ContractAgreement'
@@ -80,6 +81,15 @@ function App() {
             element={
               <ReportsRoute>
                 <Dashboard />
+              </ReportsRoute>
+            }
+          />
+          {/* نسخة ثانية من لوحة الإدارة للمقارنة — نفس الحارس والصلاحيات */}
+          <Route
+            path="/dashboard/v2"
+            element={
+              <ReportsRoute>
+                <DashboardV2 />
               </ReportsRoute>
             }
           />

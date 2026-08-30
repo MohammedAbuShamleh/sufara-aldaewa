@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContractResponse;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -96,6 +97,7 @@ class UserController extends Controller
                 'id_number' => $user->id_number,
                 'region' => $user->region,
                 'governorate' => $user->governorate,
+                'extra_governorates' => $user->extra_governorates,
                 'program_type' => $user->program_type,
                 'administrative_title' => $user->administrative_title,
                 'role' => $user->role,
@@ -131,6 +133,7 @@ class UserController extends Controller
                 'summary'     => [
                     'preaching_lessons'  => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
+                    'scientific_circles' => $activities->where('activity_type', 'scientific_circle')->count(),
                     'sermons'            => $activities->where('activity_type', 'sermon')->count(),
                     'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                     'tours'              => $activities->where('activity_type', 'tour')->count(),
@@ -150,6 +153,7 @@ class UserController extends Controller
             'id_number'   => $user->id_number,
             'region'      => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role'        => $user->role,
@@ -171,7 +175,8 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255|unique:users,id_number,' . $user->id,
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
-            'program_type' => 'nullable|in:scientific,dawah',
+            'extra_governorates' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah,joint',
             'administrative_title' => 'nullable|string|max:255',
             'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
             'password' => 'nullable|string|min:6',
@@ -195,6 +200,12 @@ class UserController extends Controller
         // نحدّث المسمى الإداري فقط إذا أُرسل الحقل (حتى لا تمحوه الشاشات التي لا ترسله)
         if ($request->has('administrative_title')) {
             $data['administrative_title'] = $validated['administrative_title'] ?? null;
+        }
+
+        // وكذلك المحافظات الإضافية: اللوحة القديمة لا ترسل الحقل، فلولا هذا الشرط
+        // لمحا أيُّ تعديل منها نطاقَ مسؤول المحافظة متعدّد المحافظات.
+        if ($request->has('extra_governorates')) {
+            $data['extra_governorates'] = $validated['extra_governorates'] ?? null;
         }
 
         // الدور اختياري؛ لا نغيّره إذا لم يُرسل
@@ -222,6 +233,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
@@ -306,7 +318,8 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255',
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
-            'program_type' => 'nullable|in:scientific,dawah',
+            'extra_governorates' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah,joint',
             'administrative_title' => 'nullable|string|max:255',
             'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
             'tag_ids' => 'nullable|array',
@@ -324,6 +337,7 @@ class UserController extends Controller
             'id_number' => $validated['id_number'] ?? null,
             'region' => $validated['region'] ?? null,
             'governorate' => $validated['governorate'] ?? null,
+            'extra_governorates' => $validated['extra_governorates'] ?? null,
             'program_type' => $validated['program_type'] ?? null,
             'administrative_title' => $validated['administrative_title'] ?? null,
             'role' => $validated['role'] ?? User::ROLE_PREACHER,
@@ -342,6 +356,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
@@ -357,12 +372,50 @@ class UserController extends Controller
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('المستخدمون');
+        $sheet->setTitle('طلبة العلم والدعاة');
+        $sheet->setRightToLeft(true);
 
-        $headers = ['الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة', 'المحافظة', 'البرنامج', 'المسمى الإداري'];
+        // الأعمدة الثلاثة الأخيرة (الدور، الصفات، الحالة) اختيارية: الملفات
+        // المُعدّة بالنموذج القديم تبقى صالحة للاستيراد كما هي.
+        $headers = [
+            'الاسم', 'البريد', 'كلمة المرور', 'رقم الهوية', 'المنطقة',
+            'المحافظة', 'البرنامج', 'المسمى الإداري', 'الدور', 'الصفات', 'الحالة',
+        ];
         foreach ($headers as $col => $header) {
             $sheet->setCellValueByColumnAndRow($col + 1, 1, $header);
+            $sheet->getStyleByColumnAndRow($col + 1, 1)->getFont()->setBold(true);
+            $sheet->getColumnDimensionByColumn($col + 1)->setWidth(20);
         }
+
+        // ورقة القيم المسموحة — أقصر طريق يمنع أخطاء الإملاء قبل حدوثها
+        $help = $spreadsheet->createSheet();
+        $help->setTitle('القيم المسموحة');
+        $help->setRightToLeft(true);
+
+        $help->setCellValue('A1', 'الحقل');
+        $help->setCellValue('B1', 'القيم المقبولة');
+        $help->getStyle('A1:B1')->getFont()->setBold(true);
+        $help->getColumnDimension('A')->setWidth(22);
+        $help->getColumnDimension('B')->setWidth(70);
+
+        $rows = [
+            ['الدور', implode(' | ', User::ROLE_LABELS)],
+            ['البرنامج', 'البرنامج العلمي | البرنامج الدعوي | البرنامج المشترك'],
+            ['الحالة', 'فعّال | معطّل'],
+            ['الصفات', 'أكثر من صفة تُفصل بفاصلة، مثال: إداري، مسؤول ملف الخطب'],
+            ['', ''],
+            ['الصفات المتاحة', Tag::orderBy('name')->pluck('name')->implode('، ')],
+            ['', ''],
+            ['ملاحظة', 'الاسم وكلمة المرور مطلوبان. أعمدة الدور والصفات والحالة اختيارية — '
+                . 'إن تُركت فارغة يُسجَّل المستخدم داعيةً فعّالاً بلا صفات.'],
+        ];
+        foreach ($rows as $i => [$label, $value]) {
+            $help->setCellValue('A' . ($i + 2), $label);
+            $help->setCellValue('B' . ($i + 2), $value);
+        }
+        $help->getStyle('B2:B' . (count($rows) + 1))->getAlignment()->setWrapText(true);
+
+        $spreadsheet->setActiveSheetIndex(0);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'نموذج_استيراد_المستخدمين_' . date('Y-m-d') . '.xlsx';
@@ -398,6 +451,7 @@ class UserController extends Controller
 
         $created = 0;
         $errors = [];
+        $warnings = [];
         $header = array_map('trim', $rows[0] ?? []);
         $nameCol = $this->findColumnIndex($header, ['الاسم', 'name', 'اسم']);
         $emailCol = $this->findColumnIndex($header, ['البريد', 'email', 'بريد']);
@@ -407,6 +461,12 @@ class UserController extends Controller
         $governorateCol = $this->findColumnIndex($header, ['المحافظة', 'governorate']);
         $programCol = $this->findColumnIndex($header, ['البرنامج', 'نوع البرنامج', 'program', 'program_type']);
         $adminTitleCol = $this->findColumnIndex($header, ['المسمى الإداري', 'المسمى', 'administrative_title', 'title']);
+        $roleCol = $this->findColumnIndex($header, ['الدور', 'role']);
+        $tagsCol = $this->findColumnIndex($header, ['الصفات', 'الصفة', 'tags', 'tag']);
+        $statusCol = $this->findColumnIndex($header, ['الحالة', 'status', 'is_active']);
+
+        // خريطة الصفات بالاسم المُسوّى — استعلام واحد بدل استعلام لكل صف
+        $tagsByName = Tag::all()->keyBy(fn ($tag) => User::normalizeArabic($tag->name));
 
         if ($nameCol === null || $passwordCol === null) {
             return response()->json([
@@ -426,6 +486,30 @@ class UserController extends Controller
             $governorate = $governorateCol !== null ? trim((string) ($row[$governorateCol] ?? '')) : null;
             $programType = $programCol !== null ? $this->normalizeProgramType((string) ($row[$programCol] ?? '')) : null;
             $adminTitle = $adminTitleCol !== null ? trim((string) ($row[$adminTitleCol] ?? '')) : null;
+
+            // الدور: إن غاب العمود أو تُرك فارغاً يبقى الافتراضي «داعية»،
+            // فتظل ملفات النموذج القديم تعمل كما كانت تماماً.
+            $role = User::ROLE_PREACHER;
+            if ($roleCol !== null) {
+                $rawRole = trim((string) ($row[$roleCol] ?? ''));
+                if ($rawRole !== '') {
+                    $matchedRole = User::roleFromLabel($rawRole);
+                    if ($matchedRole !== null) {
+                        $role = $matchedRole;
+                    } else {
+                        $warnings[] = "الصف " . ($i + 1) . ": دور غير معروف ({$rawRole}) — سُجِّل داعيةً";
+                    }
+                }
+            }
+
+            // الحالة: أي صيغة تدلّ على التعطيل تُقرأ تعطيلاً، وما عداها تفعيل.
+            $isActive = true;
+            if ($statusCol !== null) {
+                $rawStatus = User::normalizeArabic((string) ($row[$statusCol] ?? ''));
+                if ($rawStatus !== '' && in_array($rawStatus, ['معطل', 'موقوف', 'غير فعال', 'disabled', 'inactive', '0'], true)) {
+                    $isActive = false;
+                }
+            }
 
             if ($name === '' && $email === '' && empty($idNumber)) {
                 continue;
@@ -450,7 +534,7 @@ class UserController extends Controller
             }
 
             try {
-                User::create([
+                $user = User::create([
                     'name' => $name ?: 'داعية',
                     'email' => $emailValue,
                     'password' => Hash::make($password),
@@ -459,8 +543,34 @@ class UserController extends Controller
                     'governorate' => $governorate ?: null,
                     'program_type' => $programType,
                     'administrative_title' => $adminTitle ?: null,
-                    'role' => 'preacher',
+                    'role' => $role,
+                    'is_active' => $isActive,
+                    'disabled_at' => $isActive ? null : now(),
                 ]);
+
+                // الصفات: الاسم غير المعروف يُنبَّه عليه ولا يُسقط الصف —
+                // خطأ إملائي في صفة لا يستحق رفض المستخدم كله.
+                if ($tagsCol !== null) {
+                    $rawTags = trim((string) ($row[$tagsCol] ?? ''));
+                    if ($rawTags !== '') {
+                        $tagIds = [];
+                        foreach (preg_split('/[،,;\/|]+/u', $rawTags) ?: [] as $tagName) {
+                            $key = User::normalizeArabic($tagName);
+                            if ($key === '') {
+                                continue;
+                            }
+                            if ($tagsByName->has($key)) {
+                                $tagIds[] = $tagsByName->get($key)->id;
+                            } else {
+                                $warnings[] = "الصف " . ($i + 1) . ": صفة غير معروفة (" . trim($tagName) . ") — تُجوهلت";
+                            }
+                        }
+                        if (! empty($tagIds)) {
+                            $user->tags()->sync(array_unique($tagIds));
+                        }
+                    }
+                }
+
                 $created++;
             } catch (\Throwable $e) {
                 $errors[] = "الصف " . ($i + 1) . ": " . $e->getMessage();
@@ -470,6 +580,7 @@ class UserController extends Controller
         return response()->json([
             'created' => $created,
             'errors' => $errors,
+            'warnings' => $warnings,
         ]);
     }
 
@@ -478,6 +589,11 @@ class UserController extends Controller
         $v = trim($value);
         if ($v === '') {
             return null;
+        }
+        // «المشترك» أولاً: نصّه قد يحوي كلمتَي "علمي" و"دعوي" معاً، فلو أخّرناه
+        // لالتقطه فحص "علم" وصُنّف علمياً بالخطأ.
+        if (mb_strpos($v, 'مشترك') !== false || mb_strtolower($v) === 'joint') {
+            return 'joint';
         }
         if (mb_strpos($v, 'علم') !== false || mb_strtolower($v) === 'scientific') {
             return 'scientific';

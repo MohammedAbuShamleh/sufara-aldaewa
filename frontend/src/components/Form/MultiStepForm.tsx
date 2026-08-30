@@ -11,6 +11,8 @@ interface Activity {
   activity_type: string
   execution_date: string
   details: string
+  program_name?: string
+  completed_amount?: string
   target_audience?: string
   location?: string
   beneficiaries_count?: number
@@ -22,8 +24,10 @@ interface Activity {
 interface FieldDef {
   key: string
   label: string
-  type: 'text' | 'textarea' | 'number'
+  type: 'text' | 'textarea' | 'number' | 'select'
   placeholder?: string
+  /** خيارات القائمة المنسدلة — مع type: 'select' فقط. */
+  options?: string[]
 }
 
 interface Section {
@@ -48,10 +52,23 @@ const SECTIONS: Section[] = [
   {
     key: '2', title: 'الدروس العلمية', emoji: '📚', activityType: 'scientific_lesson', color: '#0891b2',
     fields: [
-      { key: 'details', label: 'تفاصيل النشاط باختصار', type: 'textarea', placeholder: 'أدخل تفاصيل النشاط...' },
+      { key: 'details', label: 'اسم الكتاب / عنوان السلسلة', type: 'textarea', placeholder: 'اسم الكتاب ثم عنوان السلسلة' },
       { key: 'target_audience', label: 'الجهة المستهدفة', type: 'text', placeholder: 'الجهة المستهدفة' },
       { key: 'location', label: 'مكان التنفيذ', type: 'text', placeholder: 'مكان التنفيذ' },
       { key: 'beneficiaries_count', label: 'عدد المستفيدين (تقديري)', type: 'number', placeholder: '0' },
+    ],
+  },
+  {
+    key: '10', title: 'الحلقات العلمية (مراقي العلم)', emoji: '🎓', activityType: 'scientific_circle', color: '#0e7490',
+    fields: [
+      {
+        key: 'program_name', label: 'اسم البرنامج', type: 'select',
+        options: ['النابغة الصغير', 'غرس البذور', 'تحصيل العلم', 'تأصيل العلم'],
+      },
+      { key: 'details', label: 'اسم الكتاب', type: 'text', placeholder: 'اسم الكتاب' },
+      { key: 'completed_amount', label: 'القدر المنجز (المواضيع المشروحة / الصفحات)', type: 'text', placeholder: 'مثال: من ص ١٢ إلى ص ٣٠ — بابا الطهارة' },
+      { key: 'beneficiaries_count', label: 'عدد الطلاب', type: 'number', placeholder: '0' },
+      { key: 'location', label: 'مكان التنفيذ', type: 'text', placeholder: 'مكان التنفيذ' },
     ],
   },
   {
@@ -174,8 +191,10 @@ function MultiStepForm() {
     if (!activity) return
 
     // Frontend validation: must have details
+    // (عنوان الحقل يختلف بين قسم وآخر — «تفاصيل النشاط» أو «اسم الكتاب» — فنقرأه من القسم)
     if (!activity.details || !activity.details.trim()) {
-      setToast({ message: 'يرجى إدخال تفاصيل النشاط قبل الحفظ', type: 'warning' })
+      const detailsLabel = section.fields.find((f) => f.key === 'details')?.label ?? 'تفاصيل النشاط'
+      setToast({ message: `يرجى إدخال «${detailsLabel}» قبل الحفظ`, type: 'warning' })
       return
     }
 
@@ -184,6 +203,8 @@ function MultiStepForm() {
       try {
         const payload: Record<string, unknown> = {
           details: activity.details ?? '',
+          program_name: activity.program_name ?? null,
+          completed_amount: activity.completed_amount ?? null,
           target_audience: activity.target_audience ?? null,
           location: activity.location ?? null,
           beneficiaries_count: activity.beneficiaries_count ?? null,
@@ -211,6 +232,8 @@ function MultiStepForm() {
           activity_type: section.activityType,
           execution_date: todayDate,
           details: activity.details ?? '',
+          program_name: activity.program_name ?? null,
+          completed_amount: activity.completed_amount ?? null,
           target_audience: activity.target_audience ?? null,
           location: activity.location ?? null,
           beneficiaries_count: activity.beneficiaries_count ?? null,
@@ -267,6 +290,10 @@ function MultiStepForm() {
     if (sectionKey === '4') newActivity.tour_responsible = ''
     if (sectionKey === '5') newActivity.coordination_responsible = ''
     if (section.activityType === 'sermon') newActivity.is_project_musalla = false
+    if (section.activityType === 'scientific_circle') {
+      newActivity.program_name = ''
+      newActivity.completed_amount = ''
+    }
 
     setActivities((prev) => {
       const existing = prev[sectionKey] || []
@@ -286,10 +313,12 @@ function MultiStepForm() {
     })
   }
 
-  const getStepIndexForActivityType = (type: string): number => {
-    const types = ['preaching_lesson', 'scientific_lesson', 'sermon', 'tour', 'forum', 'media', 'visit', 'reform', 'other']
-    return types.indexOf(type)
-  }
+  /**
+   * مفتاح القسم الذي ينتمي إليه نوع النشاط — يُقرأ من SECTIONS مباشرة بدل
+   * مصفوفة ترتيب موازية، فلا ينكسر الربط عند إضافة نوع أو إعادة ترتيب الأقسام.
+   */
+  const getSectionKeyForActivityType = (type: string): string | null =>
+    SECTIONS.find((s) => s.activityType === type)?.key ?? null
 
   // ── Load data ──
   useEffect(() => {
@@ -306,15 +335,16 @@ function MultiStepForm() {
           return s.slice(0, 10) || ''
         }
         ;(form.activities || []).forEach((activity: any) => {
-          const stepIndex = getStepIndexForActivityType(activity.activity_type)
-          if (stepIndex !== -1) {
-            const stepKey = (stepIndex + 1).toString()
+          const stepKey = getSectionKeyForActivityType(activity.activity_type)
+          if (stepKey) {
             if (!loaded[stepKey]) loaded[stepKey] = []
             loaded[stepKey].push({
               id: activity.id,
               activity_type: activity.activity_type ?? '',
               execution_date: toDateOnly(activity.execution_date) || '',
               details: activity.details ?? '',
+              program_name: activity.program_name,
+              completed_amount: activity.completed_amount,
               target_audience: activity.target_audience,
               location: activity.location,
               beneficiaries_count: activity.beneficiaries_count,
@@ -461,6 +491,17 @@ function MultiStepForm() {
                                     className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-teal/30 focus:border-teal min-h-[70px] resize-none transition-all"
                                     placeholder={field.placeholder}
                                   />
+                                ) : field.type === 'select' ? (
+                                  <select
+                                    value={(activity as any)[field.key] || ''}
+                                    onChange={(e) => updateActivityField(section.key, index, field.key, e.target.value)}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 text-sm focus:ring-2 focus:ring-teal/30 focus:border-teal transition-all"
+                                  >
+                                    <option value="">— اختر —</option>
+                                    {(field.options ?? []).map((opt) => (
+                                      <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                  </select>
                                 ) : (
                                   <input
                                     type={field.type}
@@ -528,6 +569,12 @@ function MultiStepForm() {
                                 {activity.details || <span className="text-slate-300">بدون تفاصيل</span>}
                               </p>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5">
+                                {activity.program_name && (
+                                  <span className="text-[11px] text-slate-400">🎓 {activity.program_name}</span>
+                                )}
+                                {activity.completed_amount && (
+                                  <span className="text-[11px] text-slate-400">📄 {activity.completed_amount}</span>
+                                )}
                                 {activity.location && (
                                   <span className="text-[11px] text-slate-400">📍 {activity.location}</span>
                                 )}

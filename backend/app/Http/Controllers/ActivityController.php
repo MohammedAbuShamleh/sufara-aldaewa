@@ -60,9 +60,11 @@ class ActivityController extends Controller
 
         $validated = $request->validate([
             'form_id' => 'required|exists:forms,id',
-            'activity_type' => 'required|in:preaching_lesson,scientific_lesson,sermon,tour,forum,media,visit,reform,other',
+            'activity_type' => 'required|in:preaching_lesson,scientific_lesson,scientific_circle,sermon,tour,forum,media,visit,reform,other',
             'execution_date' => 'nullable|date',
             'details' => 'required|string',
+            'program_name' => 'nullable|string|max:255',
+            'completed_amount' => 'nullable|string|max:255',
             'target_audience' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'beneficiaries_count' => 'nullable|integer|min:0',
@@ -93,9 +95,11 @@ class ActivityController extends Controller
 
         $validated = $request->validate([
             'form_id' => 'sometimes|exists:forms,id',
-            'activity_type' => 'sometimes|in:preaching_lesson,scientific_lesson,sermon,tour,forum,media,visit,reform,other',
+            'activity_type' => 'sometimes|in:preaching_lesson,scientific_lesson,scientific_circle,sermon,tour,forum,media,visit,reform,other',
             'execution_date' => 'sometimes|date',
             'details' => 'sometimes|string',
+            'program_name' => 'nullable|string|max:255',
+            'completed_amount' => 'nullable|string|max:255',
             'target_audience' => 'nullable|string|max:255',
             'location' => 'nullable|string|max:255',
             'beneficiaries_count' => 'nullable|integer|min:0',
@@ -127,9 +131,11 @@ class ActivityController extends Controller
         $validated = $request->validate([
             'form_id' => 'required|exists:forms,id',
             'activities' => 'required|array',
-            'activities.*.activity_type' => 'required|in:preaching_lesson,scientific_lesson,sermon,tour,forum,media,visit,reform,other',
+            'activities.*.activity_type' => 'required|in:preaching_lesson,scientific_lesson,scientific_circle,sermon,tour,forum,media,visit,reform,other',
             'activities.*.execution_date' => 'nullable|date',
             'activities.*.details' => 'required|string',
+            'activities.*.program_name' => 'nullable|string|max:255',
+            'activities.*.completed_amount' => 'nullable|string|max:255',
             'activities.*.target_audience' => 'nullable|string|max:255',
             'activities.*.location' => 'nullable|string|max:255',
             'activities.*.beneficiaries_count' => 'nullable|integer|min:0',

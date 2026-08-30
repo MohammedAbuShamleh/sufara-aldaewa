@@ -45,6 +45,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // مسارات إدارة المستخدمين (أدمن فقط)
             Route::get('/users', [UserController::class, 'index']);
+
+            // المسارات الثابتة تسبق /users/{user} — لولا ذلك ابتلعها المسار
+            // المتغيّر وحاول تفسير "download-template" كمعرّف مستخدم فأعاد 404.
+            Route::get('/users/download-template', [UserController::class, 'downloadTemplate']);
+            Route::post('/users/import-excel', [UserController::class, 'importExcel']);
+
             Route::get('/users/{user}', [UserController::class, 'show']);
             Route::put('/users/{user}', [UserController::class, 'update']);
             Route::patch('/users/{user}/notes', [UserController::class, 'updateNotes']);
@@ -52,8 +58,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
             Route::post('/users', [UserController::class, 'store']);
             Route::delete('/users/{user}', [UserController::class, 'destroy']);
-            Route::get('/users/download-template', [UserController::class, 'downloadTemplate']);
-            Route::post('/users/import-excel', [UserController::class, 'importExcel']);
 
             // قائمة الصفات (Tags) — لملء قوائم الاختيار والفلترة
             Route::get('/tags', [TagController::class, 'index']);

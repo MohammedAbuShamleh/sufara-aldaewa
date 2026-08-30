@@ -39,6 +39,8 @@ class ExportController extends Controller
             'tag_id' => $request->get('tag_id'),
             'month' => $request->get('month'),
             'year' => $request->get('year'),
+            // يتبع زر «إظهار/إخفاء المعطّلين» في اللوحة، وإلا افترق الملف عن الشاشة
+            'include_disabled' => $request->get('include_disabled'),
         ];
 
         $filename = 'all_activities_' . date('Y-m-d_His') . '.xlsx';

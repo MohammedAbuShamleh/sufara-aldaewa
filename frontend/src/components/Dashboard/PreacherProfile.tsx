@@ -15,6 +15,7 @@ interface FormMonth {
   summary: {
     preaching_lessons: number
     scientific_lessons: number
+    scientific_circles: number
     sermons: number
     project_musalla_sermons: number
     tours: number
@@ -43,6 +44,7 @@ interface Preacher {
 const ACTIVITY_LABELS: { key: keyof FormMonth['summary']; label: string; color: string }[] = [
   { key: 'preaching_lessons',  label: 'الدروس الوعظية',   color: '#0d9488' },
   { key: 'scientific_lessons', label: 'الدروس العلمية',   color: '#0891b2' },
+  { key: 'scientific_circles', label: 'الحلقات العلمية',  color: '#0e7490' },
   { key: 'sermons',            label: 'الخطب',            color: '#7c3aed' },
   { key: 'project_musalla_sermons', label: 'خطب مصليات المشروع', color: '#9333ea' },
   { key: 'tours',              label: 'الجولات',          color: '#d97706' },

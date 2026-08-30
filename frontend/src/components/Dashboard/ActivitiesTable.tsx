@@ -11,12 +11,14 @@ interface FormSummary {
   governorate: string | null
   program_type?: string | null
   administrative_title?: string | null
+  is_active?: boolean
   tags?: Tag[]
   has_form?: boolean
   created_at: string | null
   summary: {
     preaching_lessons: number
     scientific_lessons: number
+    scientific_circles: number
     sermons: number
     project_musalla_sermons: number
     tours: number
@@ -42,6 +44,7 @@ function countsOf(s: FormSummary): number[] {
   return [
     s.summary.preaching_lessons,
     s.summary.scientific_lessons,
+    s.summary.scientific_circles ?? 0,
     s.summary.sermons,
     s.summary.project_musalla_sermons ?? 0,
     s.summary.tours,
@@ -68,13 +71,16 @@ function ActivitiesTable({ summaries, onExport, onDelete, canDelete = true }: Pr
     )
   }
 
+  // بترتيب countsOf نفسه: الوعظية، العلمية، الحلقات العلمية، الخطب، خطب المصليات،
+  // الجولات، الملتقيات، الإعلامية، الزيارات، الإصلاح، أخرى
   const COLUMN_COLORS = [
-    '#0d9488', '#0891b2', '#7c3aed', '#9333ea', '#2563eb',
+    '#0d9488', '#0891b2', '#0e7490', '#7c3aed', '#9333ea', '#2563eb',
     '#c026d3', '#ea580c', '#16a34a', '#ca8a04', '#64748b',
   ]
 
   // مجاميع كل عمود + الإجمالي الكلي لصف التذييل
-  const columnTotals = new Array(10).fill(0)
+  // (الطول مشتقّ من countsOf حتى لا ينكسر الصف عند إضافة نوع نشاط جديد)
+  const columnTotals = new Array(COLUMN_COLORS.length).fill(0)
   summaries.forEach((s) => {
     countsOf(s).forEach((v, i) => { columnTotals[i] += v })
   })
@@ -90,7 +96,7 @@ function ActivitiesTable({ summaries, onExport, onDelete, canDelete = true }: Pr
           <thead>
             <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
               <th className={`sticky right-0 z-20 bg-slate-800 border-l border-white/10 ${STICKY_SHADOW} py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap`}>
-                اسم الداعية
+                الاسم
               </th>
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">المحافظة</th>
               <th className="py-3.5 px-4 text-right text-xs font-bold text-white/90 tracking-wider whitespace-nowrap">البرنامج</th>
@@ -98,6 +104,7 @@ function ActivitiesTable({ summaries, onExport, onDelete, canDelete = true }: Pr
               <th className="py-3.5 px-3 text-center text-xs font-bold text-white tracking-wider whitespace-nowrap bg-white/5">الإجمالي</th>
               <th className={counterTh}>الوعظية</th>
               <th className={counterTh}>العلمية</th>
+              <th className={counterTh} title="الحلقات العلمية — مراقي العلم">الحلقات العلمية</th>
               <th className={counterTh}>الخطب</th>
               <th className={counterTh} title="خطب في مصليات سفراء الدعوة">خطب مصليات المشروع</th>
               <th className={counterTh}>الجولات</th>
@@ -139,6 +146,14 @@ function ActivitiesTable({ summaries, onExport, onDelete, canDelete = true }: Pr
                           نموذج فارغ
                         </span>
                       ) : null}
+                      {summary.is_active === false && (
+                        <span
+                          title="حساب معطّل — لا يستطيع الدخول، وبياناته محفوظة"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 whitespace-nowrap"
+                        >
+                          معطّل
+                        </span>
+                      )}
                     </div>
                     {summary.administrative_title && (
                       <div className="text-[11px] text-slate-400 mt-0.5">{summary.administrative_title}</div>

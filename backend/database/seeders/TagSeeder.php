@@ -6,7 +6,7 @@ use App\Models\Tag;
 use Illuminate\Database\Seeder;
 
 /**
- * بذور الصفات (Tags) — الاثنتا عشرة صفة المعتمدة. idempotent عبر updateOrCreate على الاسم.
+ * بذور الصفات (Tags) — الصفات المعتمدة. idempotent عبر updateOrCreate على الاسم.
  */
 class TagSeeder extends Seeder
 {

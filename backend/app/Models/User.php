@@ -48,6 +48,68 @@ class User extends Authenticatable
         self::ROLE_ADMIN,
     ];
 
+    /**
+     * الأسماء العربية للأدوار — مصدر واحد يخدم استيراد الإكسيل ونموذجه.
+     * يطابق ROLE_OPTIONS في الواجهة (frontend/src/constants/roles.ts).
+     */
+    public const ROLE_LABELS = [
+        self::ROLE_PREACHER => 'داعية',
+        self::ROLE_TEAM_LEADER => 'مسؤول فريق',
+        self::ROLE_GOVERNORATE_MANAGER => 'مسؤول المحافظة',
+        self::ROLE_CENTRAL_MANAGER => 'مسؤول مركزي',
+        self::ROLE_ADMIN_SECRETARY => 'السكرتير / الإداري',
+        self::ROLE_ADMIN => 'أدمن',
+    ];
+
+    /**
+     * يحوّل ما يكتبه المستخدم في خانة «الدور» إلى قيمة الدور المخزّنة.
+     *
+     * يقبل الاسم العربي كما في النموذج، أو المفتاح الإنجليزي (preacher…)،
+     * ويتسامح مع فروق المسافات وصيغ الهمزة الشائعة في الكتابة اليدوية.
+     * يُعيد null إن لم يتعرّف على القيمة، فيتولّى المستدعي التحذير.
+     */
+    public static function roleFromLabel(?string $value): ?string
+    {
+        $normalized = self::normalizeArabic((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        // المفتاح الإنجليزي كما هو مخزَّن (preacher, team_leader…)
+        if (in_array($normalized, self::ASSIGNABLE_ROLES, true)) {
+            return $normalized;
+        }
+
+        foreach (self::ROLE_LABELS as $role => $label) {
+            if (self::normalizeArabic($label) === $normalized) {
+                return $role;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * تسوية نصّ عربي للمقارنة: توحيد الهمزات والألف المقصورة والتاء المربوطة،
+     * وإزالة التشكيل والمسافات الزائدة. بدونها يفشل «مسؤول» أمام «مسئول».
+     */
+    public static function normalizeArabic(string $value): string
+    {
+        $value = trim(mb_strtolower($value));
+        $value = preg_replace('/[\x{064B}-\x{0652}\x{0640}]/u', '', $value) ?? $value;
+        // كراسي الهمزة تُحذف بدل أن تُردّ كلٌّ إلى حرفها: ردّ «ؤ» إلى «و»
+        // و«ئ» إلى «ي» يجعل «مسؤول» و«مسئول» نصّين مختلفين، وهما الصيغتان
+        // اللتان يكتبهما الناس فعلاً للكلمة نفسها.
+        $value = strtr($value, [
+            'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا',
+            'ؤ' => '', 'ئ' => '', 'ء' => '',
+            'ى' => 'ي', 'ة' => 'ه',
+        ]);
+
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+    }
+
     protected $fillable = [
         'name',
         'email',
@@ -55,10 +117,12 @@ class User extends Authenticatable
         'id_number',
         'region',
         'governorate',
+        'extra_governorates',
         'program_type',
         'administrative_title',
         'role',
         'is_active',
+        'disabled_at',
         'notes',
     ];
 
@@ -170,6 +234,27 @@ class User extends Authenticatable
     }
 
     /**
+     * المحافظات التي يغطّيها هذا المستخدم كنطاق رؤية: محافظته الأساسية مضافاً
+     * إليها ما في extra_governorates (لمن يغطّي أكثر من محافظة، كـ«الجنوب»).
+     *
+     * تقبل الفاصلة العربية واللاتينية، وتتجاهل الفراغات والقيم المكرّرة.
+     * قائمة فارغة تعني «لا شيء» عمداً: whereIn على مصفوفة فارغة لا يُرجع صفوفاً،
+     * فمسؤولٌ بلا محافظة لا يرى أحداً بدل أن يرى الجميع.
+     *
+     * @return list<string>
+     */
+    public function scopedGovernorates(): array
+    {
+        // المُعدِّل u ضروري: الفاصلة العربية «،» متعدّدة البايتات، وبدونه يقسم
+        // preg_split على بايتات مفردة فيقطع الحروف العربية نفسها في المنتصف.
+        $extra = preg_split('/[,،]/u', (string) $this->extra_governorates) ?: [];
+
+        $all = array_map('trim', array_merge([(string) $this->governorate], $extra));
+
+        return array_values(array_unique(array_filter($all, fn ($g) => $g !== '')));
+    }
+
+    /**
      * الدعاة المشمولون بالتقارير الشهرية:
      *  - كل من دوره "داعية" (يظهر حتى لو لم يُدخل نموذجاً — لرصد من لم يُسلّم)، أو
      *  - أي مستخدم عبّأ نموذجاً (بأي دور) — ليظهر الدعاة الذين لهم مسمى/دور إداري.
@@ -201,7 +286,7 @@ class User extends Authenticatable
         }
 
         if ($viewer->role === self::ROLE_GOVERNORATE_MANAGER) {
-            return $query->where('governorate', $viewer->governorate);
+            return $query->whereIn('governorate', $viewer->scopedGovernorates());
         }
 
         if ($viewer->role === self::ROLE_TEAM_LEADER) {

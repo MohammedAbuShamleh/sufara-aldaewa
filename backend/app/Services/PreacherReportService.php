@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
 class PreacherReportService
 {
     /**
-     * @param  array  $filters  month, year, governorate, sub_region, team, program_type, preacher_name
+     * @param  array  $filters  month, year, governorate, sub_region, team, program_type, preacher_name, include_disabled
      * @return Collection<int, array>  صف لكل داعية بنفس شكل مخرجات لوحة التحكم
      */
     public function summary(User $viewer, array $filters = []): Collection
@@ -73,6 +73,19 @@ class PreacherReportService
             $usersQuery->where('program_type', $filters['program_type']);
         }
 
+        // الحسابات المعطّلة: تُخفى افتراضياً من الروستر — فلا يظهر من تُرك تعطيله
+        // في قائمة «لم يُسلّم». لكن من عبّأ نموذجاً في الشهر المعروض يبقى ظاهراً حتى
+        // لو عُطِّل لاحقاً، وإلا اختفت أنشطة حقيقية من تقارير الشهور الماضية ونقصت
+        // المجاميع. الزر في اللوحة يمرّر include_disabled=1 لإظهار الجميع.
+        $includeDisabled = filter_var($filters['include_disabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (! $includeDisabled) {
+            $usersQuery->where(function ($q) use ($month, $year) {
+                $q->where('is_active', true)
+                    ->orWhereNull('is_active')
+                    ->orWhereHas('forms', fn ($f) => $f->where('month', $month)->where('year', $year));
+            });
+        }
+
         $users = $usersQuery->orderBy('name')->get();
 
         // نماذج الشهر المطلوب (مقيّدة بنطاق العارض) مفهرسة بمعرّف الداعية
@@ -95,12 +108,14 @@ class PreacherReportService
                 'governorate' => $user->governorate,
                 'program_type' => $user->program_type,
                 'administrative_title' => $user->administrative_title,
+                'is_active' => $user->isActive(),
                 'tags' => $user->tagsArray(),
                 'has_form' => (bool) $form,
                 'created_at' => $form?->created_at,
                 'summary' => [
                     'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
+                    'scientific_circles' => $activities->where('activity_type', 'scientific_circle')->count(),
                     'sermons' => $activities->where('activity_type', 'sermon')->count(),
                     'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                     'tours' => $activities->where('activity_type', 'tour')->count(),
@@ -114,10 +129,15 @@ class PreacherReportService
         })->values();
     }
 
-    /** ترتيب أنواع الأنشطة العشرة كما تظهر في الجدول والتصدير. */
+    /**
+     * ترتيب عدّادات الأنشطة كما تظهر في الجدول والتصدير.
+     * الترتيب هنا هو ترتيب أعمدة ورقة «الملخص الشهري» — أي إدراج يجب أن يقابله
+     * إدراج في الموضع نفسه داخل headings() في AllFormsExport.
+     */
     public const COUNTER_KEYS = [
         'preaching_lessons',
         'scientific_lessons',
+        'scientific_circles',
         'sermons',
         'project_musalla_sermons',
         'tours',
