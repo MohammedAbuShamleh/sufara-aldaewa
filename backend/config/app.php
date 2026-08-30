@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'basair_admin_token' => env('BASAIR_ADMIN_TOKEN'),
     'name' => env('APP_NAME', 'Religious Activities Survey'),
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),

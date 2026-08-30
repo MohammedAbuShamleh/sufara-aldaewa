@@ -24,6 +24,14 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
+    // الحساب عُطِّل أثناء الجلسة — نُنهي الجلسة محلياً بدل ترك واجهة معطوبة.
+    // نتحقق من العلامة تحديداً حتى لا نطرد من حُجب لسبب آخر (كعقد الكفالة)،
+    // ونستثني /login لأن رسالته تُعرض في الشاشة نفسها ولا يصح أن يبتلعها التحويل.
+    const isLoginRequest = (error.config?.url ?? '').includes('/login')
+    if (error.response?.status === 403 && error.response?.data?.account_disabled && !isLoginRequest) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
     return Promise.reject(error)
   }
 )

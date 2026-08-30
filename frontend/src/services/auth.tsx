@@ -11,6 +11,8 @@ interface User {
   administrative_title?: string | null
   program_type?: string | null
   id_number?: string
+  // هل الحساب فعّال؟ الحساب المعطّل يُمنع من الدخول ومن استخدام الـ API
+  is_active?: boolean
   // القرار تجاه النسخة الحالية من عقد الكفالة (يأتي من /login و /user)
   contract_decision?: 'agreed' | 'declined' | 'pending'
   contract_agreed?: boolean

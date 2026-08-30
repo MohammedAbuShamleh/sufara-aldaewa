@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             // يحجب بيانات النظام عمّن لم يوافق على عقد الكفالة (حجب الواجهة وحده لا يكفي)
             'contract.agreed' => \App\Http\Middleware\EnsureContractAgreed::class,
+            // يمنع الحسابات المعطّلة من استخدام النظام بتوكن صدر قبل التعطيل
+            'user.active' => \App\Http\Middleware\EnsureUserActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

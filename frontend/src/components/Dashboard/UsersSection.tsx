@@ -18,6 +18,8 @@ interface UserRow {
   program_type: string | null
   administrative_title: string | null
   role: string
+  is_active?: boolean
+  disabled_at?: string | null
   tags?: Tag[]
   contract_decision?: 'agreed' | 'declined' | 'pending'
   contract_responded_at?: string | null
@@ -47,6 +49,10 @@ export default function UsersSection() {
 
   // فلتر القرار تجاه عقد الكفالة: '' = الكل
   const [contractFilter, setContractFilter] = useState<'' | 'agreed' | 'declined' | 'pending'>('')
+
+  // فلتر حالة الحساب: '' = الكل
+  const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'disabled'>('')
+  const [togglingId, setTogglingId] = useState<number | null>(null)
   const programDropdownRef = useRef<HTMLDivElement>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null)
@@ -160,8 +166,12 @@ export default function UsersSection() {
       (!governorateFilter || u.governorate === governorateFilter) &&
       (!regionFilter || u.region === regionFilter) &&
       (!programFilter || u.program_type === programFilter) &&
-      (!contractFilter || (u.contract_decision ?? 'pending') === contractFilter),
+      (!contractFilter || (u.contract_decision ?? 'pending') === contractFilter) &&
+      (!statusFilter || (u.is_active === false ? 'disabled' : 'active') === statusFilter),
   )
+
+  // عدّاد المعطّلين ضمن النطاق المعروض حالياً
+  const disabledCount = displayedUsers.filter((u) => u.is_active === false).length
 
   // عدّاد الموافقين على العقد ضمن النطاق المعروض حالياً
   const signedCount = displayedUsers.filter((u) => u.contract_decision === 'agreed').length
@@ -288,6 +298,32 @@ export default function UsersSection() {
       console.error(err)
     } finally {
       setTemplateLoading(false)
+    }
+  }
+
+  // تعطيل الحساب أو إعادة تفعيله — البديل عن الحذف: يمنع الدخول ويُبقي
+  // بيانات الداعية ونماذجه في التقارير.
+  const handleToggleActive = async (u: UserRow) => {
+    const nextActive = u.is_active === false
+    const question = nextActive
+      ? `هل تريد إعادة تفعيل حساب "${u.name}"؟`
+      : `هل تريد تعطيل حساب "${u.name}"؟ لن يستطيع الدخول إلى النظام، وتبقى بياناته وتقاريره كما هي.`
+    if (!window.confirm(question)) return
+
+    setTogglingId(u.id)
+    try {
+      const res = await api.patch(`/users/${u.id}/status`, { is_active: nextActive })
+      setUsers((prev) =>
+        prev.map((row) =>
+          row.id === u.id
+            ? { ...row, is_active: res.data.is_active, disabled_at: res.data.disabled_at }
+            : row,
+        ),
+      )
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'فشل تغيير حالة الحساب')
+    } finally {
+      setTogglingId(null)
     }
   }
 
@@ -587,11 +623,36 @@ export default function UsersSection() {
               ))}
             </div>
 
+            {/* فلتر حالة الحساب (فعّال / معطّل) */}
+            <div className="inline-flex rounded-xl border border-gray-300 overflow-hidden text-sm">
+              {([
+                { value: '', label: 'كل الحسابات' },
+                { value: 'active', label: 'فعّال' },
+                { value: 'disabled', label: 'معطّل' },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value || 'all'}
+                  type="button"
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`px-3 py-2 font-medium transition-all border-l border-gray-200 last:border-l-0 ${
+                    statusFilter === opt.value
+                      ? 'bg-teal text-white'
+                      : 'bg-white text-darkGray hover:bg-gray-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
             <span className="text-sm text-slate-500">
               وافق <span className="font-bold text-teal">{signedCount}</span> من {displayedUsers.length}
+              {disabledCount > 0 && (
+                <> — معطّل <span className="font-bold text-coral">{disabledCount}</span></>
+              )}
             </span>
 
-            {(governorateFilter || regionFilter || programFilter || contractFilter) && (
+            {(governorateFilter || regionFilter || programFilter || contractFilter || statusFilter) && (
               <button
                 type="button"
                 onClick={() => {
@@ -599,6 +660,7 @@ export default function UsersSection() {
                   setRegionFilter('')
                   setProgramFilter('')
                   setContractFilter('')
+                  setStatusFilter('')
                 }}
                 className="text-sm text-coral hover:underline"
               >
@@ -624,6 +686,7 @@ export default function UsersSection() {
                     <th className="py-2 px-2 font-semibold text-darkGray">البرنامج</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">العقد</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">الدور</th>
+                    <th className="py-2 px-2 font-semibold text-darkGray">الحالة</th>
                     <th className="py-2 px-2 font-semibold text-darkGray">إجراءات</th>
                   </tr>
                 </thead>
@@ -695,7 +758,7 @@ export default function UsersSection() {
               </table>
               {displayedUsers.length === 0 && (
                 <p className="py-6 text-center text-darkGray/70">
-                  {governorateFilter || regionFilter || programFilter || contractFilter
+                  {governorateFilter || regionFilter || programFilter || contractFilter || statusFilter
                     ? `لا يوجد مستخدمون مطابقون للفلتر المحدد.`
                     : 'لا يوجد مستخدمون.'}
                 </p>

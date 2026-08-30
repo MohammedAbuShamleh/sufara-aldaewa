@@ -58,6 +58,7 @@ class User extends Authenticatable
         'program_type',
         'administrative_title',
         'role',
+        'is_active',
         'notes',
     ];
 
@@ -71,6 +72,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'disabled_at' => 'datetime',
         ];
     }
 
@@ -127,6 +130,23 @@ class User extends Authenticatable
     public function hasAgreedToContract(?string $version = null): bool
     {
         return $this->contractDecision($version) === ContractResponse::DECISION_AGREED;
+    }
+
+    // ── تفعيل الحساب / تعطيله ─────────────────────────────────
+
+    /**
+     * هل الحساب فعّال؟ الحسابات القديمة (قبل إضافة العمود) تُعتبر فعّالة،
+     * فلا يُقفل النظام في وجه الجميع إن لم تُنفَّذ الهجرة بعد.
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active === null || (bool) $this->is_active;
+    }
+
+    /** قصر الاستعلام على الحسابات الفعّالة. */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
     }
 
     // ── الصلاحيات ─────────────────────────────────────────────

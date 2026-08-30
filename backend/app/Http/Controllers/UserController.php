@@ -69,6 +69,13 @@ class UserController extends Controller
             $query->where('program_type', $request->program_type);
         }
 
+        // فلترة حسب حالة الحساب: active | disabled
+        if ($request->input('status') === 'active') {
+            $query->where('is_active', true);
+        } elseif ($request->input('status') === 'disabled') {
+            $query->where('is_active', false);
+        }
+
         // فلترة حسب القرار تجاه العقد: agreed | declined | pending (لم يردّ بعد)
         $contractFilter = $request->input('contract_status');
         if (in_array($contractFilter, [ContractResponse::DECISION_AGREED, ContractResponse::DECISION_DECLINED], true)) {
@@ -92,6 +99,8 @@ class UserController extends Controller
                 'program_type' => $user->program_type,
                 'administrative_title' => $user->administrative_title,
                 'role' => $user->role,
+                'is_active' => $user->isActive(),
+                'disabled_at' => $user->disabled_at?->toIso8601String(),
                 'tags' => $user->tagsArray(),
                 'contract_decision' => $response?->decision ?? User::CONTRACT_PENDING,
                 'contract_responded_at' => $response?->responded_at?->toIso8601String(),
@@ -144,6 +153,8 @@ class UserController extends Controller
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role'        => $user->role,
+            'is_active'   => $user->isActive(),
+            'disabled_at' => $user->disabled_at?->toIso8601String(),
             'notes'       => $user->notes,
             'tags'        => $user->tagsArray(),
             'forms'       => $formSummaries,
@@ -214,6 +225,8 @@ class UserController extends Controller
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
+            'is_active' => $user->isActive(),
+            'disabled_at' => $user->disabled_at?->toIso8601String(),
             'tags' => $user->tagsArray(),
             'message' => 'تم تحديث بيانات الداعية بنجاح',
         ]);
@@ -230,6 +243,44 @@ class UserController extends Controller
         $user->update(['notes' => $validated['notes'] ?? null]);
 
         return response()->json(['message' => 'تم حفظ الملاحظات بنجاح', 'notes' => $user->notes]);
+    }
+
+    /**
+     * تعطيل الحساب أو إعادة تفعيله — البديل عن الحذف.
+     *
+     * التعطيل يمنع الدخول ويُبطل التوكنات القائمة (وإلا بقيت جلسة المستخدم
+     * المفتوحة تعمل)، بينما تبقى بياناته ونماذجه وأنشطته في التقارير كما هي.
+     */
+    public function updateStatus(Request $request, User $user)
+    {
+        $this->ensureAdmin($request);
+
+        $validated = $request->validate([
+            'is_active' => 'required|boolean',
+        ]);
+
+        $isActive = (bool) $validated['is_active'];
+
+        if (! $isActive && $user->id === $request->user()->id) {
+            return response()->json(['message' => 'لا يمكنك تعطيل حسابك الخاص'], 422);
+        }
+
+        $user->update([
+            'is_active' => $isActive,
+            'disabled_at' => $isActive ? null : now(),
+        ]);
+
+        // إنهاء جلسات الحساب المعطّل فوراً
+        if (! $isActive) {
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'is_active' => $user->isActive(),
+            'disabled_at' => $user->disabled_at?->toIso8601String(),
+            'message' => $isActive ? 'تم تفعيل الحساب بنجاح' : 'تم تعطيل الحساب بنجاح',
+        ]);
     }
 
     public function destroy(Request $request, User $user)
@@ -294,6 +345,8 @@ class UserController extends Controller
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
+            'is_active' => $user->isActive(),
+            'disabled_at' => $user->disabled_at?->toIso8601String(),
             'tags' => $user->tagsArray(),
         ], 201);
     }

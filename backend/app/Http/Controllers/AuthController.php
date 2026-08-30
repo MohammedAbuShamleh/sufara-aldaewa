@@ -30,6 +30,15 @@ class AuthController extends Controller
             ]);
         }
 
+        // الحساب المعطّل لا يدخل النظام — نتحقق بعد كلمة المرور حتى لا نكشف
+        // حالة الحسابات لمن لا يملك بياناتها.
+        if (! $user->isActive()) {
+            return response()->json([
+                'message' => 'تم تعطيل هذا الحساب. يرجى مراجعة الإدارة.',
+                'account_disabled' => true,
+            ], 403);
+        }
+
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([
@@ -63,6 +72,7 @@ class AuthController extends Controller
         $user->unsetRelation('contractResponses');
 
         return $user->toArray() + [
+            'is_active' => $user->isActive(),
             'contract_decision' => $response?->decision ?? User::CONTRACT_PENDING,
             'contract_agreed' => $response?->isAgreed() ?? false,
             'contract_responded_at' => $response?->responded_at?->toIso8601String(),
