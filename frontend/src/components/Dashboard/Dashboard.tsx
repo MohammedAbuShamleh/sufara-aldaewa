@@ -26,6 +26,7 @@ interface FormSummary {
   summary: {
     preaching_lessons: number
     scientific_lessons: number
+    scientific_circles: number
     sermons: number
     project_musalla_sermons: number
     tours: number
@@ -292,13 +293,13 @@ function Dashboard() {
             </div>
             <div className="form-group">
               <label className="block text-sm font-semibold text-darkGray mb-2">
-                اسم الداعية
+                الاسم
               </label>
               <input
                 type="text"
                 value={filters.preacher_name}
                 onChange={(e) => setFilters({ ...filters, preacher_name: e.target.value })}
-                placeholder="ابحث باسم الداعية"
+                placeholder="ابحث بالاسم"
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-300 bg-lightBlueGray text-darkGray focus:ring-2 focus:ring-teal focus:border-teal transition-all"
               />
             </div>
@@ -517,12 +518,13 @@ function Dashboard() {
 
               {(() => {
                 const totals = {
-                  preaching_lessons: 0, scientific_lessons: 0, sermons: 0, project_musalla_sermons: 0,
+                  preaching_lessons: 0, scientific_lessons: 0, scientific_circles: 0, sermons: 0, project_musalla_sermons: 0,
                   tours: 0, forums: 0, media: 0, visits: 0, reform: 0, other: 0,
                 }
                 summaries.forEach(s => {
                   totals.preaching_lessons += s.summary.preaching_lessons
                   totals.scientific_lessons += s.summary.scientific_lessons
+                  totals.scientific_circles += s.summary.scientific_circles ?? 0
                   totals.sermons += s.summary.sermons
                   totals.project_musalla_sermons += s.summary.project_musalla_sermons ?? 0
                   totals.tours += s.summary.tours
@@ -533,12 +535,13 @@ function Dashboard() {
                   totals.other += s.summary.other
                 })
                 const grandTotal =
-                  totals.preaching_lessons + totals.scientific_lessons + totals.sermons +
+                  totals.preaching_lessons + totals.scientific_lessons + totals.scientific_circles + totals.sermons +
                   totals.tours + totals.forums + totals.media + totals.visits + totals.reform + totals.other
 
                 const STATS = [
                   { label: 'الدروس الوعظية', value: totals.preaching_lessons, color: '#0d9488', bg: '#f0fdfa' },
                   { label: 'الدروس العلمية', value: totals.scientific_lessons, color: '#0891b2', bg: '#ecfeff' },
+                  { label: 'الحلقات العلمية', value: totals.scientific_circles, color: '#0e7490', bg: '#ecfeff' },
                   { label: 'الخطب', value: totals.sermons, color: '#7c3aed', bg: '#f5f3ff' },
                   { label: 'خطب في مصليات المشروع', value: totals.project_musalla_sermons, color: '#9333ea', bg: '#faf5ff' },
                   { label: 'الجولات', value: totals.tours, color: '#2563eb', bg: '#eff6ff' },
@@ -596,10 +599,6 @@ function Dashboard() {
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-3 rounded bg-amber-200 border border-amber-300" />
                 لم يُدخل النموذج هذا الشهر
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded bg-orange-200 border border-orange-300" />
-                نموذج فارغ (بدون أنشطة)
               </span>
               {summaries.some((s) => s.is_active === false) && (
                 <span className="flex items-center gap-1.5">

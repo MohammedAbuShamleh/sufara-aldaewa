@@ -97,6 +97,7 @@ class UserController extends Controller
                 'id_number' => $user->id_number,
                 'region' => $user->region,
                 'governorate' => $user->governorate,
+                'extra_governorates' => $user->extra_governorates,
                 'program_type' => $user->program_type,
                 'administrative_title' => $user->administrative_title,
                 'role' => $user->role,
@@ -132,6 +133,7 @@ class UserController extends Controller
                 'summary'     => [
                     'preaching_lessons'  => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
+                    'scientific_circles' => $activities->where('activity_type', 'scientific_circle')->count(),
                     'sermons'            => $activities->where('activity_type', 'sermon')->count(),
                     'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                     'tours'              => $activities->where('activity_type', 'tour')->count(),
@@ -151,6 +153,7 @@ class UserController extends Controller
             'id_number'   => $user->id_number,
             'region'      => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role'        => $user->role,
@@ -172,7 +175,8 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255|unique:users,id_number,' . $user->id,
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
-            'program_type' => 'nullable|in:scientific,dawah',
+            'extra_governorates' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah,joint',
             'administrative_title' => 'nullable|string|max:255',
             'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
             'password' => 'nullable|string|min:6',
@@ -196,6 +200,12 @@ class UserController extends Controller
         // نحدّث المسمى الإداري فقط إذا أُرسل الحقل (حتى لا تمحوه الشاشات التي لا ترسله)
         if ($request->has('administrative_title')) {
             $data['administrative_title'] = $validated['administrative_title'] ?? null;
+        }
+
+        // وكذلك المحافظات الإضافية: اللوحة القديمة لا ترسل الحقل، فلولا هذا الشرط
+        // لمحا أيُّ تعديل منها نطاقَ مسؤول المحافظة متعدّد المحافظات.
+        if ($request->has('extra_governorates')) {
+            $data['extra_governorates'] = $validated['extra_governorates'] ?? null;
         }
 
         // الدور اختياري؛ لا نغيّره إذا لم يُرسل
@@ -223,6 +233,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
@@ -307,7 +318,8 @@ class UserController extends Controller
             'id_number' => 'nullable|string|max:255',
             'region' => 'nullable|string|max:255',
             'governorate' => 'nullable|string|max:255',
-            'program_type' => 'nullable|in:scientific,dawah',
+            'extra_governorates' => 'nullable|string|max:255',
+            'program_type' => 'nullable|in:scientific,dawah,joint',
             'administrative_title' => 'nullable|string|max:255',
             'role' => ['nullable', Rule::in(User::ASSIGNABLE_ROLES)],
             'tag_ids' => 'nullable|array',
@@ -325,6 +337,7 @@ class UserController extends Controller
             'id_number' => $validated['id_number'] ?? null,
             'region' => $validated['region'] ?? null,
             'governorate' => $validated['governorate'] ?? null,
+            'extra_governorates' => $validated['extra_governorates'] ?? null,
             'program_type' => $validated['program_type'] ?? null,
             'administrative_title' => $validated['administrative_title'] ?? null,
             'role' => $validated['role'] ?? User::ROLE_PREACHER,
@@ -343,6 +356,7 @@ class UserController extends Controller
             'id_number' => $user->id_number,
             'region' => $user->region,
             'governorate' => $user->governorate,
+            'extra_governorates' => $user->extra_governorates,
             'program_type' => $user->program_type,
             'administrative_title' => $user->administrative_title,
             'role' => $user->role,
@@ -358,7 +372,7 @@ class UserController extends Controller
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('المستخدمون');
+        $sheet->setTitle('طلبة العلم والدعاة');
         $sheet->setRightToLeft(true);
 
         // الأعمدة الثلاثة الأخيرة (الدور، الصفات، الحالة) اختيارية: الملفات
@@ -386,7 +400,7 @@ class UserController extends Controller
 
         $rows = [
             ['الدور', implode(' | ', User::ROLE_LABELS)],
-            ['البرنامج', 'البرنامج العلمي | البرنامج الدعوي'],
+            ['البرنامج', 'البرنامج العلمي | البرنامج الدعوي | البرنامج المشترك'],
             ['الحالة', 'فعّال | معطّل'],
             ['الصفات', 'أكثر من صفة تُفصل بفاصلة، مثال: إداري، مسؤول ملف الخطب'],
             ['', ''],
@@ -575,6 +589,11 @@ class UserController extends Controller
         $v = trim($value);
         if ($v === '') {
             return null;
+        }
+        // «المشترك» أولاً: نصّه قد يحوي كلمتَي "علمي" و"دعوي" معاً، فلو أخّرناه
+        // لالتقطه فحص "علم" وصُنّف علمياً بالخطأ.
+        if (mb_strpos($v, 'مشترك') !== false || mb_strtolower($v) === 'joint') {
+            return 'joint';
         }
         if (mb_strpos($v, 'علم') !== false || mb_strtolower($v) === 'scientific') {
             return 'scientific';

@@ -61,7 +61,7 @@ function Login() {
             />
           </div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight">سفراء الدعوة</h1>
-          <p className="text-sm text-white/60 mt-1.5 font-medium">نظام متابعة الأنشطة الدعوية</p>
+          <p className="text-sm text-white/60 mt-1.5 font-medium">برنامج متابعة الأنشطة العلمية والدعوية</p>
         </div>
 
         {/* Login Card */}

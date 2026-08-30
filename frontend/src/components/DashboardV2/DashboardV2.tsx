@@ -41,7 +41,7 @@ export default function DashboardV2() {
 
   const TABS: { key: TabKey; label: string; adminOnly?: boolean }[] = [
     { key: 'reports', label: 'التقارير' },
-    { key: 'users', label: 'المستخدمون', adminOnly: true },
+    { key: 'users', label: 'طلبة العلم والدعاة', adminOnly: true },
     { key: 'contract', label: 'عقد الكفالة', adminOnly: true },
   ]
 

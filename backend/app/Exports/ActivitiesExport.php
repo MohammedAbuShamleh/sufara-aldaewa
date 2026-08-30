@@ -52,7 +52,9 @@ class ActivitiesDetailSheet implements FromCollection, WithHeadings, WithMapping
         return [
             'نوع النشاط',
             'تاريخ التنفيذ',
-            'تفاصيل النشاط',
+            'تفاصيل النشاط / اسم الكتاب',
+            'اسم البرنامج',
+            'القدر المنجز',
             'الجهة المستهدفة',
             'مكان التنفيذ',
             'عدد المستفيدين',
@@ -70,6 +72,8 @@ class ActivitiesDetailSheet implements FromCollection, WithHeadings, WithMapping
             $types[$activity->activity_type] ?? $activity->activity_type,
             $activity->execution_date->format('Y-m-d'),
             $activity->details,
+            $activity->program_name ?? '',
+            $activity->completed_amount ?? '',
             $activity->target_audience ?? '',
             $activity->location ?? '',
             $activity->beneficiaries_count ?? 0,
@@ -137,6 +141,10 @@ class ActivitiesSummarySheet implements FromCollection, WithHeadings, WithMappin
             [
                 'label' => 'عدد الدروس العلمية',
                 'value' => $activities->where('activity_type', 'scientific_lesson')->count(),
+            ],
+            [
+                'label' => 'عدد الحلقات العلمية',
+                'value' => $activities->where('activity_type', 'scientific_circle')->count(),
             ],
             [
                 'label' => 'عدد الخطب',

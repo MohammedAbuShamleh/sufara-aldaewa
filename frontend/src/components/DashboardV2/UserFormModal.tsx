@@ -11,6 +11,7 @@ export interface UserFormValues {
   id_number: string
   region: string
   governorate: string
+  extra_governorates: string
   program_type: string
   administrative_title: string
   role: string
@@ -128,6 +129,22 @@ export default function UserFormModal({
               <label className={labelCls}>المنطقة</label>
               <input type="text" value={values.region} onChange={(e) => set('region', e.target.value)} className={input} />
             </div>
+            {/* يظهر لمسؤول المحافظة وحده: الأدوار الأخرى إمّا ترى الجميع أو ترى نطاقاً أضيق. */}
+            {values.role === 'governorate_manager' && (
+              <div className="sm:col-span-2">
+                <label className={labelCls}>محافظات إضافية ضمن نطاقه</label>
+                <input
+                  type="text"
+                  value={values.extra_governorates}
+                  onChange={(e) => set('extra_governorates', e.target.value)}
+                  placeholder="مثال: رفح — وتُفصل بفاصلة عند التعدّد"
+                  className={input}
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  لمن يغطّي أكثر من محافظة (كـ«الجنوب»). تُضاف إلى محافظته أعلاه ولا تحلّ محلّها.
+                </p>
+              </div>
+            )}
             <div>
               <label className={labelCls}>البرنامج</label>
               <select value={values.program_type} onChange={(e) => set('program_type', e.target.value)} className={input}>

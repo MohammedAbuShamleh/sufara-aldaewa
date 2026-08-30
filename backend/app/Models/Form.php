@@ -68,7 +68,7 @@ class Form extends Model
         }
 
         if ($viewer->role === User::ROLE_GOVERNORATE_MANAGER) {
-            return $owner->governorate === $viewer->governorate;
+            return in_array($owner->governorate, $viewer->scopedGovernorates(), true);
         }
 
         if ($viewer->role === User::ROLE_TEAM_LEADER) {

@@ -36,10 +36,10 @@ function FormHeader() {
           </div>
           <div className="flex flex-col min-w-0">
             <h1 className="text-base md:text-xl font-extrabold text-white tracking-tight truncate">
-              نظام متابعة الأنشطة الدعوية
+              برنامج متابعة الأنشطة العلمية والدعوية
             </h1>
             <p className="text-xs text-white/50 mt-0.5 font-medium hidden sm:block">
-              توثيق الدروس والخطب والجولات بسهولة
+              توثيق الدروس والحلقات العلمية والخطب والجولات بسهولة
             </p>
           </div>
         </div>

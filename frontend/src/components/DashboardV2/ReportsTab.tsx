@@ -24,6 +24,7 @@ export interface FormSummary {
   summary: {
     preaching_lessons: number
     scientific_lessons: number
+    scientific_circles: number
     sermons: number
     project_musalla_sermons: number
     tours: number
@@ -38,6 +39,7 @@ export interface FormSummary {
 const STAT_META: { key: keyof FormSummary['summary']; label: string; color: string }[] = [
   { key: 'preaching_lessons', label: 'الدروس الوعظية', color: '#0f766e' },
   { key: 'scientific_lessons', label: 'الدروس العلمية', color: '#0891b2' },
+  { key: 'scientific_circles', label: 'الحلقات العلمية', color: '#0e7490' },
   { key: 'sermons', label: 'الخطب', color: '#b45309' },
   { key: 'project_musalla_sermons', label: 'خطب المصليات', color: '#a16207' },
   { key: 'tours', label: 'الجولات', color: '#15803d' },
@@ -212,7 +214,7 @@ export default function ReportsTab({ role }: { role?: string }) {
           onChange={(month, year) => setFilters((f) => ({ ...f, month, year }))}
         />
         <SearchField
-          label="اسم الداعية"
+          label="الاسم"
           value={filters.preacher_name}
           onChange={(v) => setFilters((f) => ({ ...f, preacher_name: v }))}
           placeholder="بحث بالاسم"
@@ -321,10 +323,6 @@ export default function ReportsTab({ role }: { role?: string }) {
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3 h-3 rounded bg-amber-200 border border-amber-300" />
               لم يُدخل النموذج هذا الشهر
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded bg-orange-200 border border-orange-300" />
-              نموذج فارغ (بدون أنشطة)
             </span>
             {disabledShown > 0 && (
               <span className="flex items-center gap-1.5">

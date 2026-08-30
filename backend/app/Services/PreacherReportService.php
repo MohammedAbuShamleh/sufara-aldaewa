@@ -115,6 +115,7 @@ class PreacherReportService
                 'summary' => [
                     'preaching_lessons' => $activities->where('activity_type', 'preaching_lesson')->count(),
                     'scientific_lessons' => $activities->where('activity_type', 'scientific_lesson')->count(),
+                    'scientific_circles' => $activities->where('activity_type', 'scientific_circle')->count(),
                     'sermons' => $activities->where('activity_type', 'sermon')->count(),
                     'project_musalla_sermons' => $activities->where('activity_type', 'sermon')->where('is_project_musalla', true)->count(),
                     'tours' => $activities->where('activity_type', 'tour')->count(),
@@ -128,10 +129,15 @@ class PreacherReportService
         })->values();
     }
 
-    /** ترتيب أنواع الأنشطة العشرة كما تظهر في الجدول والتصدير. */
+    /**
+     * ترتيب عدّادات الأنشطة كما تظهر في الجدول والتصدير.
+     * الترتيب هنا هو ترتيب أعمدة ورقة «الملخص الشهري» — أي إدراج يجب أن يقابله
+     * إدراج في الموضع نفسه داخل headings() في AllFormsExport.
+     */
     public const COUNTER_KEYS = [
         'preaching_lessons',
         'scientific_lessons',
+        'scientific_circles',
         'sermons',
         'project_musalla_sermons',
         'tours',

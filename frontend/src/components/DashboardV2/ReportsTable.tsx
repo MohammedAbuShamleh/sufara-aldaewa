@@ -25,6 +25,7 @@ const INFO_COLUMNS = [
 const ACTIVITY_COLUMNS = [
   { key: 'preaching_lessons', label: 'الوعظية', color: '#0d9488' },
   { key: 'scientific_lessons', label: 'العلمية', color: '#0891b2' },
+  { key: 'scientific_circles', label: 'الحلقات العلمية', color: '#0e7490', title: 'الحلقات العلمية — مراقي العلم' },
   { key: 'sermons', label: 'الخطب', color: '#7c3aed' },
   { key: 'project_musalla_sermons', label: 'خطب المصليات', color: '#9333ea', title: 'خطب في مصليات سفراء الدعوة' },
   { key: 'tours', label: 'الجولات', color: '#2563eb' },
@@ -38,7 +39,9 @@ const ACTIVITY_COLUMNS = [
 type InfoKey = (typeof INFO_COLUMNS)[number]['key']
 type ActivityKey = (typeof ACTIVITY_COLUMNS)[number]['key']
 
-const STORAGE_KEY = 'dashboard2:report_columns'
+// v2: رُفع المفتاح عند إضافة عمود «الحلقات العلمية» — الاختيار المحفوظ قديماً
+// لا يحوي العمود الجديد، فلولا الرفع لبقي مخفيّاً عمّن استخدم اللوحة سابقاً.
+const STORAGE_KEY = 'dashboard2:report_columns:v2'
 
 /** الافتراضي: المحافظة وحدها من الوصفية، وكل أنواع الأنشطة — أي ١٤ عموداً بدل ١٦. */
 const DEFAULT_INFO: InfoKey[] = ['governorate']
@@ -259,7 +262,7 @@ export default function ReportsTable({ summaries, onExport, onDelete, canDelete 
               <thead>
                 <tr className="bg-gradient-to-r from-slate-800 to-slate-700">
                   <th className={`sticky right-0 z-20 bg-slate-800 border-l border-white/10 ${STICKY_SHADOW} py-3.5 px-4 text-right text-xs font-bold text-white/90 whitespace-nowrap`}>
-                    اسم الداعية
+                    الاسم
                   </th>
                   {visibleInfo.map((col) => (
                     <th key={col.key} className="py-3.5 px-4 text-right text-xs font-bold text-white/90 whitespace-nowrap">

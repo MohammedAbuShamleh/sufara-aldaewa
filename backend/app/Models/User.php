@@ -117,6 +117,7 @@ class User extends Authenticatable
         'id_number',
         'region',
         'governorate',
+        'extra_governorates',
         'program_type',
         'administrative_title',
         'role',
@@ -233,6 +234,27 @@ class User extends Authenticatable
     }
 
     /**
+     * المحافظات التي يغطّيها هذا المستخدم كنطاق رؤية: محافظته الأساسية مضافاً
+     * إليها ما في extra_governorates (لمن يغطّي أكثر من محافظة، كـ«الجنوب»).
+     *
+     * تقبل الفاصلة العربية واللاتينية، وتتجاهل الفراغات والقيم المكرّرة.
+     * قائمة فارغة تعني «لا شيء» عمداً: whereIn على مصفوفة فارغة لا يُرجع صفوفاً،
+     * فمسؤولٌ بلا محافظة لا يرى أحداً بدل أن يرى الجميع.
+     *
+     * @return list<string>
+     */
+    public function scopedGovernorates(): array
+    {
+        // المُعدِّل u ضروري: الفاصلة العربية «،» متعدّدة البايتات، وبدونه يقسم
+        // preg_split على بايتات مفردة فيقطع الحروف العربية نفسها في المنتصف.
+        $extra = preg_split('/[,،]/u', (string) $this->extra_governorates) ?: [];
+
+        $all = array_map('trim', array_merge([(string) $this->governorate], $extra));
+
+        return array_values(array_unique(array_filter($all, fn ($g) => $g !== '')));
+    }
+
+    /**
      * الدعاة المشمولون بالتقارير الشهرية:
      *  - كل من دوره "داعية" (يظهر حتى لو لم يُدخل نموذجاً — لرصد من لم يُسلّم)، أو
      *  - أي مستخدم عبّأ نموذجاً (بأي دور) — ليظهر الدعاة الذين لهم مسمى/دور إداري.
@@ -264,7 +286,7 @@ class User extends Authenticatable
         }
 
         if ($viewer->role === self::ROLE_GOVERNORATE_MANAGER) {
-            return $query->where('governorate', $viewer->governorate);
+            return $query->whereIn('governorate', $viewer->scopedGovernorates());
         }
 
         if ($viewer->role === self::ROLE_TEAM_LEADER) {

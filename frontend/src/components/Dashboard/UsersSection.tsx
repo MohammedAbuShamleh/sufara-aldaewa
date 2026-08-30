@@ -365,7 +365,7 @@ export default function UsersSection() {
     <div className="bg-white rounded-2xl shadow-xl border border-teal/10 p-6 mb-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <h3 className="text-xl font-bold text-teal">المستخدمون (الدعاة)</h3>
+          <h3 className="text-xl font-bold text-teal">طلبة العلم والدعاة</h3>
           {users.length > 0 && (
             <button
               type="button"

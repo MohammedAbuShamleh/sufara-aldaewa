@@ -17,6 +17,7 @@ export interface UserRow {
   id_number: string | null
   region: string | null
   governorate: string | null
+  extra_governorates?: string | null
   program_type: string | null
   administrative_title: string | null
   role: string
@@ -56,7 +57,7 @@ const STORAGE_KEY = 'dashboard2:user_columns'
 
 const EMPTY_FORM: UserFormValues = {
   name: '', email: '', password: '', id_number: '', region: '',
-  governorate: '', program_type: '', administrative_title: '', role: 'preacher',
+  governorate: '', extra_governorates: '', program_type: '', administrative_title: '', role: 'preacher',
 }
 
 export default function UsersTab() {
@@ -521,6 +522,7 @@ export default function UsersTab() {
               id_number: values.id_number.trim() || null,
               region: values.region.trim() || null,
               governorate: values.governorate.trim() || null,
+              extra_governorates: values.extra_governorates.trim() || null,
               program_type: values.program_type || null,
               administrative_title: values.administrative_title.trim() || null,
               role: values.role || 'preacher',
@@ -543,6 +545,7 @@ export default function UsersTab() {
             id_number: editingUser.id_number ?? '',
             region: editingUser.region ?? '',
             governorate: editingUser.governorate ?? '',
+            extra_governorates: editingUser.extra_governorates ?? '',
             program_type: editingUser.program_type ?? '',
             administrative_title: editingUser.administrative_title ?? '',
             role: editingUser.role ?? 'preacher',
@@ -556,6 +559,7 @@ export default function UsersTab() {
               id_number: values.id_number.trim() || null,
               region: values.region.trim() || null,
               governorate: values.governorate.trim() || null,
+              extra_governorates: values.extra_governorates.trim() || null,
               program_type: values.program_type || null,
               administrative_title: values.administrative_title.trim() || null,
               role: values.role || 'preacher',

@@ -14,6 +14,8 @@ class Activity extends Model
         'activity_type',
         'execution_date',
         'details',
+        'program_name',
+        'completed_amount',
         'target_audience',
         'location',
         'beneficiaries_count',
@@ -38,6 +40,7 @@ class Activity extends Model
         return [
             'preaching_lesson' => 'دروس وعظية',
             'scientific_lesson' => 'دروس علمية',
+            'scientific_circle' => 'حلقات علمية (مراقي العلم)',
             'sermon' => 'خطب',
             'tour' => 'جولات',
             'forum' => 'ملتقيات',
