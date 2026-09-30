@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PROGRAM_OPTIONS } from '../../constants/programs'
 import { ROLE_OPTIONS } from '../../constants/roles'
 import { TagsSelect } from '../Dashboard/TagsSelect'
-import { errorMessage } from './errors'
+import { errorMessage } from '../../services/errors'
 
 export interface UserFormValues {
   name: string

@@ -7,7 +7,7 @@ import { useTags, type Tag } from '../../constants/tags'
 import {
   FilterBar, MonthField, SearchField, SelectField, ToggleField, MONTH_NAMES,
 } from './Field'
-import { errorMessage } from './errors'
+import { errorMessage } from '../../services/errors'
 
 export interface FormSummary {
   form_id: number | null
