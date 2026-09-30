@@ -8,7 +8,7 @@ import { type Tag } from '../../constants/tags'
 import { TagChips } from '../Dashboard/TagsSelect'
 import { FilterBar, SearchField, SelectField } from './Field'
 import UserFormModal, { type UserFormValues } from './UserFormModal'
-import { errorMessage } from './errors'
+import { errorMessage } from '../../services/errors'
 
 export interface UserRow {
   id: number

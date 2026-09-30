@@ -4,7 +4,7 @@ import { useAuth } from '../../services/auth'
 import { roleLabel } from '../../constants/roles'
 import Toast from '../UI/Toast'
 import { FilterBar, SearchField, SelectField } from './Field'
-import { errorMessage } from './errors'
+import { errorMessage } from '../../services/errors'
 
 type Decision = 'agreed' | 'declined' | 'pending'
 
