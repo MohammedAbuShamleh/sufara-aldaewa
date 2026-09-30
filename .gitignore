@@ -54,3 +54,8 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# memory-engine: session digest injected for local agents - personal data, never commit
+/CLAUDE.local.md
+/AGENTS.md
+/GEMINI.md
