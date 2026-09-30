@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { isAxiosError } from 'axios'
 import FormHeader from '../Layout/FormHeader'
 import { useAuth } from '../../services/auth'
 import { ActivityRowActions } from './ActivityRowActions'
 import Toast from '../UI/Toast'
 import api from '../../services/api'
+import { errorMessage } from '../../services/errors'
 import '../../styles/theme.css'
 
 interface Activity {
@@ -136,6 +138,26 @@ const SECTIONS: Section[] = [
   },
 ]
 
+/**
+ * رسالة الفشل مع سببها من الخادم. كانت الرسالة المجرّدة «فشل حفظ النشاط» تُخفي
+ * سبب الرفض، فبقي عطل ENUM الحلقات العلمية مجهولاً حتى تتبّعناه يدوياً.
+ * - أخطاء SQL من Laravel تُقصّ عند «(Connection: …» لأن نصّ الاستعلام بعدها طويل.
+ * - السبب التقني (إنجليزي غالباً) يُعزل اتجاهياً بـ FSI…PDI حتى لا يبعثر الجملة العربية.
+ */
+const MAX_REASON_LENGTH = 160
+
+function failureMessage(action: string, err: unknown): string {
+  if (isAxiosError(err) && !err.response) {
+    return `${action}: تعذّر الاتصال بالخادم، تحقّق من الإنترنت ثم أعد المحاولة`
+  }
+  const status = isAxiosError(err) ? err.response?.status : undefined
+  let reason = errorMessage(err, '').split(' (Connection:')[0].trim()
+  if (reason.length > MAX_REASON_LENGTH) reason = `${reason.slice(0, MAX_REASON_LENGTH)}…`
+
+  const head = status ? `${action} (${status})` : action
+  return reason ? `${head}: ⁨${reason}⁩` : head
+}
+
 function MultiStepForm() {
   const { user } = useAuth()
   const [activities, setActivities] = useState<Record<string, Activity[]>>({})
@@ -175,8 +197,8 @@ function MultiStepForm() {
         const response = await api.post('/forms', payload)
         setFormId(response.data.id)
         return response.data.id
-      } catch {
-        setToast({ message: 'فشل في إنشاء النموذج', type: 'error' })
+      } catch (err) {
+        setToast({ message: failureMessage('فشل في إنشاء النموذج', err), type: 'error' })
         return null
       }
     }
@@ -217,8 +239,8 @@ function MultiStepForm() {
         }
         await api.put(`/activities/${activity.id}`, payload)
         setToast({ message: 'تم تحديث النشاط', type: 'success' })
-      } catch {
-        setToast({ message: 'فشل تحديث النشاط', type: 'error' })
+      } catch (err) {
+        setToast({ message: failureMessage('فشل تحديث النشاط', err), type: 'error' })
       }
     } else {
       // Create new
@@ -249,8 +271,8 @@ function MultiStepForm() {
           return { ...prev, [sectionKey]: next }
         })
         setToast({ message: 'تم حفظ النشاط', type: 'success' })
-      } catch {
-        setToast({ message: 'فشل حفظ النشاط', type: 'error' })
+      } catch (err) {
+        setToast({ message: failureMessage('فشل حفظ النشاط', err), type: 'error' })
       } finally {
         setLoading(false)
       }
@@ -265,8 +287,8 @@ function MultiStepForm() {
     if (activity?.id) {
       try {
         await api.delete(`/activities/${activity.id}`)
-      } catch {
-        setToast({ message: 'فشل حذف النشاط', type: 'error' })
+      } catch (err) {
+        setToast({ message: failureMessage('فشل حذف النشاط', err), type: 'error' })
         return
       }
     }
@@ -358,9 +380,9 @@ function MultiStepForm() {
         // Auto-open sections that have activities
         const openKeys = new Set(Object.keys(loaded).filter((k) => loaded[k].length > 0))
         setOpenSections(openKeys)
-      } catch (err: any) {
-        if (err.response?.status === 401) return
-        setToast({ message: 'لم يُحمّل نموذج الشهر الحالي.', type: 'warning' })
+      } catch (err) {
+        if (isAxiosError(err) && err.response?.status === 401) return
+        setToast({ message: failureMessage('لم يُحمّل نموذج الشهر الحالي', err), type: 'warning' })
       } finally {
         setInitialLoading(false)
       }
@@ -380,8 +402,8 @@ function MultiStepForm() {
       await api.patch('/user/notes', { notes })
       setNotesSaved(true)
       setTimeout(() => setNotesSaved(false), 3000)
-    } catch {
-      setToast({ message: 'فشل حفظ الملاحظات', type: 'error' })
+    } catch (err) {
+      setToast({ message: failureMessage('فشل حفظ الملاحظات', err), type: 'error' })
     } finally {
       setNotesSaving(false)
     }
@@ -660,7 +682,13 @@ function MultiStepForm() {
       </div>
 
       {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          // رسالة الخطأ تحمل سببها الآن — تبقى أطول ليقرأها الداعية أو يصوّرها
+          duration={toast.type === 'error' ? 8000 : undefined}
+        />
       )}
     </div>
   )
