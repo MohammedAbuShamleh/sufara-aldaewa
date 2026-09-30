@@ -241,6 +241,7 @@ function MultiStepForm() {
         setToast({ message: 'تم تحديث النشاط', type: 'success' })
       } catch (err) {
         setToast({ message: failureMessage('فشل تحديث النشاط', err), type: 'error' })
+        return // يبقى في وضع التحرير — لا نوهم الداعية بأن التعديل حُفظ
       }
     } else {
       // Create new
@@ -272,7 +273,9 @@ function MultiStepForm() {
         })
         setToast({ message: 'تم حفظ النشاط', type: 'success' })
       } catch (err) {
+        // يبقى في وضع التحرير: إغلاقه كان يعرض النشاط كأنه محفوظ ثم يختفي عند التحديث
         setToast({ message: failureMessage('فشل حفظ النشاط', err), type: 'error' })
+        return
       } finally {
         setLoading(false)
       }
